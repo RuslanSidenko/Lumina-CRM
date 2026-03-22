@@ -15,7 +15,7 @@ func GetLeads(c *gin.Context) {
 	userID, _ := c.Get("userID")
 	perms, hasPerms := c.Get("permissions")
 
-	query := "SELECT id, name, phone, email, status, assigned_to, custom_fields, created_at FROM leads"
+	query := "SELECT id, name, phone, email, status, assigned_to, source, custom_fields, created_at FROM leads"
 	args := []interface{}{}
 
 	// RBAC row-level filtering
@@ -45,7 +45,7 @@ func GetLeads(c *gin.Context) {
 	var leads []models.Lead
 	for rows.Next() {
 		var l models.Lead
-		err := rows.Scan(&l.ID, &l.Name, &l.Phone, &l.Email, &l.Status, &l.AssignedTo, &l.CustomFields, &l.CreatedAt)
+		err := rows.Scan(&l.ID, &l.Name, &l.Phone, &l.Email, &l.Status, &l.AssignedTo, &l.Source, &l.CustomFields, &l.CreatedAt)
 		if err != nil {
 			log.Println("Error scanning lead:", err)
 			continue
@@ -89,14 +89,14 @@ func CreateLead(c *gin.Context) {
 		req.AssignedTo = &currentUID
 	}
 
-	if req.CustomFields == nil {
-		req.CustomFields = make(map[string]interface{})
+	if req.Source == "" {
+		req.Source = "manual"
 	}
 
 	var newID int
 	err := repository.DB.QueryRow(context.Background(),
-		"INSERT INTO leads (name, phone, email, status, assigned_to, custom_fields) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
-		req.Name, req.Phone, req.Email, req.Status, req.AssignedTo, req.CustomFields).Scan(&newID)
+		"INSERT INTO leads (name, phone, email, status, assigned_to, source, custom_fields) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
+		req.Name, req.Phone, req.Email, req.Status, req.AssignedTo, req.Source, req.CustomFields).Scan(&newID)
 
 	if err != nil {
 		log.Println("Failed to create lead:", err)
@@ -135,8 +135,8 @@ func UpdateLead(c *gin.Context) {
 	// 2. Fetch current lead data for field conservation
 	var current models.Lead
 	err := repository.DB.QueryRow(context.Background(), 
-		"SELECT name, phone, email, status, assigned_to, custom_fields FROM leads WHERE id=$1", id).
-		Scan(&current.Name, &current.Phone, &current.Email, &current.Status, &current.AssignedTo, &current.CustomFields)
+		"SELECT name, phone, email, status, assigned_to, source, custom_fields FROM leads WHERE id=$1", id).
+		Scan(&current.Name, &current.Phone, &current.Email, &current.Status, &current.AssignedTo, &current.Source, &current.CustomFields)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Lead not found"})
 		return
@@ -163,8 +163,8 @@ func UpdateLead(c *gin.Context) {
 	}
 
 	_, err = repository.DB.Exec(context.Background(),
-		"UPDATE leads SET name=$1, phone=$2, email=$3, status=$4, assigned_to=$5, custom_fields=$6 WHERE id=$7",
-		l.Name, l.Phone, l.Email, l.Status, l.AssignedTo, l.CustomFields, id)
+		"UPDATE leads SET name=$1, phone=$2, email=$3, status=$4, assigned_to=$5, source=$6, custom_fields=$7 WHERE id=$8",
+		l.Name, l.Phone, l.Email, l.Status, l.AssignedTo, l.Source, l.CustomFields, id)
 
 	if err != nil {
 		log.Println("Update lead error:", err)
@@ -189,4 +189,36 @@ func DeleteLead(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Lead deleted successfully"})
+}
+
+func CreatePublicLead(c *gin.Context) {
+	var req models.CreateLeadRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Default values for public leads
+	if req.Status == "" {
+		req.Status = "New"
+	}
+	if req.Source == "" {
+		req.Source = "external"
+	}
+	if req.CustomFields == nil {
+		req.CustomFields = make(map[string]interface{})
+	}
+
+	// For public leads, we might not have an assigned_to yet
+	var newID int
+	err := repository.DB.QueryRow(context.Background(),
+		"INSERT INTO leads (name, phone, email, status, assigned_to, source, custom_fields) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
+		req.Name, req.Phone, req.Email, req.Status, req.AssignedTo, req.Source, req.CustomFields).Scan(&newID)
+
+	if err != nil {
+		log.Println("Failed to create public lead:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process lead source"})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"message": "Lead received successfully", "id": newID})
 }

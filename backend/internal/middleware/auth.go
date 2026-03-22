@@ -113,8 +113,28 @@ func RequirePermission(resource, action string) gin.HandlerFunc {
 			return
 		}
 
-		// Store permissions in context for row-level/field-level checks in handlers
-		c.Set("permissions", p)
+	c.Set("permissions", p)
+		c.Next()
+	}
+}
+
+func RequireAPIKey() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		apiKey := c.GetHeader("X-API-Key")
+		if apiKey == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "X-API-Key header required"})
+			c.Abort()
+			return
+		}
+
+		var id int
+		err := repository.DB.QueryRow(context.Background(), "SELECT id FROM api_keys WHERE key = $1", apiKey).Scan(&id)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid API Key"})
+			c.Abort()
+			return
+		}
+
 		c.Next()
 	}
 }

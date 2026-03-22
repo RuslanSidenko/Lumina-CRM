@@ -18,6 +18,7 @@ type Lead struct {
 	Email      string    `json:"email"`
 	Status     string    `json:"status"`
 	AssignedTo   *int                   `json:"assigned_to"`
+	Source       string                 `json:"source"`
 	CustomFields map[string]interface{} `json:"custom_fields"`
 	CreatedAt    time.Time              `json:"created_at"`
 }
@@ -45,6 +46,7 @@ type CreateLeadRequest struct {
 	Email      string `json:"email" binding:"required,email"`
 	Status     string `json:"status" binding:"required"`
 	AssignedTo   *int                   `json:"assigned_to"`
+	Source       string                 `json:"source"`
 	CustomFields map[string]interface{} `json:"custom_fields"`
 }
 
@@ -100,4 +102,11 @@ type RolePermission struct {
 	CanEditAll       bool     `json:"can_edit_all"`
 	CanDelete        bool     `json:"can_delete"`
 	RestrictedFields []string `json:"restricted_fields"`
+}
+
+type APIKey struct {
+	ID        int       `json:"id"`
+	Key       string    `json:"key"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"created_at"`
 }

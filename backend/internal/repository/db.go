@@ -142,6 +142,13 @@ func SeedDatabase() {
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);
 
+	CREATE TABLE IF NOT EXISTS api_keys (
+		id SERIAL PRIMARY KEY,
+		key VARCHAR(64) UNIQUE NOT NULL,
+		name VARCHAR(100),
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);
+
 	CREATE TABLE IF NOT EXISTS role_permissions (
 		id SERIAL PRIMARY KEY,
 		role_name VARCHAR(50) NOT NULL,
@@ -202,6 +209,9 @@ func SeedDatabase() {
 	// Migrations for existing tables
 	if _, err := DB.Exec(context.Background(), "ALTER TABLE leads ADD COLUMN IF NOT EXISTS custom_fields JSONB DEFAULT '{}'"); err != nil {
 		log.Printf("Migration error (leads custom_fields): %v", err)
+	}
+	if _, err := DB.Exec(context.Background(), "ALTER TABLE leads ADD COLUMN IF NOT EXISTS source VARCHAR(50) DEFAULT 'manual'"); err != nil {
+		log.Printf("Migration error (leads source): %v", err)
 	}
 	if _, err := DB.Exec(context.Background(), "ALTER TABLE leads ADD COLUMN IF NOT EXISTS assigned_to INTEGER REFERENCES users(id) ON DELETE SET NULL"); err != nil {
 		log.Printf("Migration error (leads assigned_to): %v", err)

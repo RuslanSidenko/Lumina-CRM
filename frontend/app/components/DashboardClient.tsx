@@ -15,6 +15,7 @@ import AddPropertyModal from './AddPropertyModal';
 import AddDealModal from './AddDealModal';
 import FieldManagement from './FieldManagement';
 import RoleManagement from './RoleManagement';
+import APIKeyManagement from './APIKeyManagement';
 
 import { Lead, Property } from '../types';
 
@@ -137,6 +138,12 @@ export default function DashboardClient({ initialLeads, initialProperties, token
                 >
                   Roles
                 </button>
+                <button 
+                  onClick={() => setActiveTab('API')}
+                  className={`pb-4 text-sm font-semibold transition-all ${activeTab === 'API' ? 'text-brand-400 border-b-2 border-brand-400' : 'text-slate-500 hover:text-slate-300'}`}
+                >
+                  API
+                </button>
               </>
             )}
           </div>
@@ -182,6 +189,10 @@ export default function DashboardClient({ initialLeads, initialProperties, token
             ) : activeTab === 'Roles' && role === 'admin' ? (
               <>
                 <RoleManagement token={token} />
+              </>
+            ) : activeTab === 'API' && role === 'admin' ? (
+              <>
+                <APIKeyManagement token={token} />
               </>
             ) : (
               <div className="p-12 text-center text-slate-500">Feature coming soon.</div>

@@ -33,6 +33,7 @@ func main() {
 	{
 		// Public Routes
 		api.POST("/auth/login", handlers.Login)
+		api.POST("/public/leads", middleware.RequireAPIKey(), handlers.CreatePublicLead)
 
 		// Evaluated against Auth JWT token
 		protected := api.Group("/")
@@ -84,6 +85,11 @@ func main() {
 				adminOnly.POST("/custom-fields", handlers.CreateCustomField)
 				adminOnly.PUT("/custom-fields/:id", handlers.UpdateCustomField)
 				adminOnly.DELETE("/custom-fields/:id", handlers.DeleteCustomField)
+
+				// API Key Management
+				adminOnly.GET("/api-keys", handlers.GetAPIKeys)
+				adminOnly.POST("/api-keys", handlers.CreateAPIKey)
+				adminOnly.DELETE("/api-keys/:id", handlers.DeleteAPIKey)
 			}
 			// Agents can also read field definitions
 			protected.GET("/custom-fields", handlers.GetCustomFields)
