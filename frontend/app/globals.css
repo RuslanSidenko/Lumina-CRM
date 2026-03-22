@@ -1,27 +1,170 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  body {
-    @apply bg-dark-bg text-slate-200 antialiased selection:bg-brand-500 selection:text-white min-h-screen text-sm;
+  * {
+    box-sizing: border-box;
   }
+  body {
+    background-color: #13141a;
+    color: #d1d5db;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+  }
+  ::selection {
+    background-color: rgba(99, 102, 241, 0.3);
+    color: white;
+  }
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #3b3e55; border-radius: 9999px; }
+  ::-webkit-scrollbar-thumb:hover { background: #2e3044; }
 }
 
 @layer components {
+  /* ── Buttons ── */
   .btn-primary {
-    @apply px-4 py-2.5 bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-500 hover:to-brand-400 text-white font-medium rounded-xl shadow-[0_4px_14px_0_rgba(20,184,166,0.39)] transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0;
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg 
+           text-sm font-semibold transition-all duration-150 select-none cursor-pointer
+           disabled:opacity-50 disabled:cursor-not-allowed;
+    background-color: #6366f1;
+    color: white;
   }
+  .btn-primary:hover { background-color: #4f46e5; }
+  .btn-primary:active { background-color: #4338ca; }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg
+           text-sm font-semibold transition-all duration-150 select-none;
+    background-color: #1c1d26;
+    border: 1px solid #2e3044;
+    color: #d1d5db;
+  }
+  .btn-secondary:hover { background-color: #252736; }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center px-3 py-1.5 rounded-md
+           text-sm font-medium transition-all duration-150 select-none;
+    color: #9ca3af;
+  }
+  .btn-ghost:hover { color: #f9fafb; background-color: #1c1d26; }
+
   .btn-danger {
-    @apply px-4 py-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 font-medium rounded-xl transition-colors duration-200;
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg
+           text-sm font-semibold transition-all duration-150;
+    background-color: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #f87171;
   }
+  .btn-danger:hover { background-color: rgba(239, 68, 68, 0.2); }
+
+  /* ── Inputs ── */
   .input-field {
-    @apply bg-dark-bg border border-dark-border text-white px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all;
+    @apply w-full px-3 py-2.5 rounded-lg text-sm transition-all duration-150
+           focus:outline-none;
+    background-color: #0b0c10;
+    border: 1px solid #2e3044;
+    color: #f9fafb;
   }
-  .glass-panel {
-    @apply bg-dark-card/90 backdrop-blur-xl border border-dark-border rounded-2xl shadow-2xl;
+  .input-field::placeholder { color: #6b7280; }
+  .input-field:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 1px #6366f1;
+  }
+
+  .input-label {
+    @apply block text-xs font-semibold uppercase tracking-wider mb-1.5;
+    color: #9ca3af;
+  }
+
+  /* ── Cards ── */
+  .card {
+    @apply rounded-xl;
+    background-color: #1c1d26;
+    border: 1px solid #2e3044;
+  }
+  .card-hover {
+    @apply card transition-all duration-200 cursor-pointer;
+  }
+  .card-hover:hover {
+    border-color: rgba(99, 102, 241, 0.4);
+    background-color: #252736;
+  }
+
+  /* Legacy compat */
+  .glass-panel { @apply card; }
+
+  /* ── Badges ── */
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold tracking-tight;
+  }
+  .badge-blue {
+    @apply badge;
+    background-color: rgba(59, 130, 246, 0.1);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+  }
+  .badge-green {
+    @apply badge;
+    background-color: rgba(34, 197, 94, 0.1);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+  }
+  .badge-yellow {
+    @apply badge;
+    background-color: rgba(234, 179, 8, 0.1);
+    color: #facc15;
+    border: 1px solid rgba(234, 179, 8, 0.2);
+  }
+  .badge-purple {
+    @apply badge;
+    background-color: rgba(168, 85, 247, 0.1);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.2);
+  }
+  .badge-red {
+    @apply badge;
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+  }
+
+  /* ── Modals ── */
+  .modal-overlay {
+    @apply fixed inset-0 z-50 flex items-center justify-center p-4;
+    background-color: rgba(11, 12, 16, 0.85);
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease-out;
+  }
+  .modal-panel {
+    @apply rounded-2xl;
+    background-color: #1c1d26;
+    border: 1px solid #2e3044;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.6);
+    animation: slideUp 0.25s ease-out;
+  }
+
+  /* ── Utilities ── */
+  .section-title {
+    @apply text-[10px] font-bold uppercase tracking-widest;
+    color: #6b7280;
   }
   .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-400 to-blue-500;
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, #818cf8, #c084fc);
   }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }

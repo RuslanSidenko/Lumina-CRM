@@ -9,111 +9,141 @@ interface LeadsTableProps {
   onLeadClick: (lead: Lead) => void;
 }
 
-export default function LeadsTable({ leads, token, role, refreshData, onLeadClick }: LeadsTableProps) {
-  const [searchTerm, setSearchTerm] = useState('');
+const STATUS_STYLES: Record<string, string> = {
+  New:       'badge-blue',
+  Contacted: 'badge-yellow',
+  Qualified: 'badge-purple',
+  Active:    'badge-green',
+  Lost:      'badge-red',
+};
 
-  const deleteLead = async (id: number) => {
-    if (!confirm(`Delete lead ${id}? This action requires Admin privileges.`)) return;
-    
+export default function LeadsTable({ leads, token, role, refreshData, onLeadClick }: LeadsTableProps) {
+  const [search, setSearch] = useState('');
+  const [sortKey, setSortKey] = useState<'name' | 'status' | 'created_at'>('created_at');
+
+  const deleteLead = async (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm('Delete this lead? This cannot be undone.')) return;
     const res = await fetch(`http://localhost:8080/api/v1/leads/${id}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` },
     });
-    
-    if (res.ok) {
-      refreshData();
-    } else {
-      const errorData = await res.json().catch(()=>({}));
-      alert("Failed to delete lead: " + (errorData.error || "Must be an admin."));
-    }
+    if (res.ok) refreshData();
+    else alert('Failed to delete lead. Admin privileges required.');
   };
 
-  const filteredLeads = leads.filter(l => 
-    l.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    l.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    l.phone.includes(searchTerm)
-  );
+  const filtered = leads
+    .filter(l =>
+      l.name.toLowerCase().includes(search.toLowerCase()) ||
+      l.email.toLowerCase().includes(search.toLowerCase()) ||
+      l.phone.includes(search)
+    )
+    .sort((a, b) => {
+      if (sortKey === 'name') return a.name.localeCompare(b.name);
+      if (sortKey === 'status') return a.status.localeCompare(b.status);
+      return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+    });
+
+  const initials = (name: string) => name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+
+  const AVATAR_COLORS = [
+    'bg-accent-500/20 text-accent-400',
+    'bg-emerald-500/20 text-emerald-400',
+    'bg-violet-500/20 text-violet-400',
+    'bg-sky-500/20 text-sky-400',
+    'bg-amber-500/20 text-amber-400',
+  ];
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex justify-between items-center gap-4">
-        <div className="relative flex-1 max-w-md">
-           <input 
-            type="text" 
-            placeholder="Search leads..." 
-            className="input-field pl-10 h-10 text-sm" 
-            value={searchTerm} 
-            onChange={e => setSearchTerm(e.target.value)}
-           />
-           <svg className="w-4 h-4 absolute left-3 top-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+    <div>
+      {/* Table Toolbar */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-n-500/60">
+        <div className="relative flex-1 max-w-xs">
+          <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-n-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Filter leads..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="bg-n-800 border border-n-500 text-n-100 text-sm rounded-lg pl-9 pr-3 py-1.5 w-full focus:outline-none focus:ring-1 focus:ring-accent-500 focus:border-accent-500 placeholder-n-400"
+          />
         </div>
+        <select
+          value={sortKey}
+          onChange={e => setSortKey(e.target.value as any)}
+          className="bg-n-800 border border-n-500 text-n-200 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-accent-500"
+        >
+          <option value="created_at">Sort: Recent</option>
+          <option value="name">Sort: Name</option>
+          <option value="status">Sort: Status</option>
+        </select>
+        <span className="text-xs text-n-400 ml-auto shrink-0">{filtered.length} records</span>
       </div>
 
-      <div className="glass-panel overflow-hidden border border-dark-border">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="text-slate-400 bg-slate-800/30 uppercase text-xs font-semibold">
-              <tr>
-                <th className="px-6 py-4">Name</th>
-                <th className="px-6 py-4">Contact Info</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-dark-border">
-              {filteredLeads.map(lead => (
-                <tr 
-                  key={lead.id} 
-                  onClick={() => onLeadClick(lead)}
-                  className="hover:bg-slate-800/30 transition-colors cursor-pointer group"
-                >
-                  <td className="px-6 py-4 font-medium text-slate-200">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-brand-500/20 text-brand-400 flex items-center justify-center font-bold">
-                        {lead.name.charAt(0)}
-                      </div>
-                      {lead.name}
+      {/* Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-n-500/60">
+              <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-n-400">Contact</th>
+              <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-n-400">Email</th>
+              <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-n-400">Phone</th>
+              <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-n-400">Status</th>
+              <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-n-400">Added</th>
+              <th className="px-4 py-3" />
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-n-500/40">
+            {filtered.map((lead, i) => (
+              <tr
+                key={lead.id}
+                onClick={() => onLeadClick(lead)}
+                className="hover:bg-n-600/50 transition-colors duration-100 cursor-pointer group"
+              >
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-bold shrink-0 ${AVATAR_COLORS[i % AVATAR_COLORS.length]}`}>
+                      {initials(lead.name)}
                     </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-slate-200">{lead.email}</div>
-                    <div className="text-slate-500 text-xs mt-1">{lead.phone}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${
-                      lead.status === 'New' 
-                        ? 'bg-brand-500/10 text-brand-400 border-brand-500/20' 
-                        : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
-                    }`}>
-                      {lead.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 flex gap-3 justify-end items-center h-full">
-                    <a 
+                    <span className="font-semibold text-n-50 group-hover:text-accent-400 transition-colors">{lead.name}</span>
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-n-300">{lead.email}</td>
+                <td className="px-4 py-3 text-n-300 font-mono text-xs">{lead.phone}</td>
+                <td className="px-4 py-3">
+                  <span className={STATUS_STYLES[lead.status] || 'badge badge-blue'}>{lead.status}</span>
+                </td>
+                <td className="px-4 py-3 text-n-400 text-xs">
+                  {lead.created_at ? new Date(lead.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
+                    <a
                       href={`mailto:${lead.email}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-sm font-medium text-brand-400 hover:text-brand-300 transition-colors"
+                      onClick={e => e.stopPropagation()}
+                      className="btn-ghost py-1 px-2 text-xs"
                     >
                       Email
                     </a>
                     {role === 'admin' && (
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); deleteLead(lead.id); }} 
-                        className="text-sm font-medium text-red-500 hover:text-red-400 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
+                      <button onClick={e => deleteLead(lead.id, e)} className="btn-ghost py-1 px-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10">
                         Delete
                       </button>
                     )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {filtered.length === 0 && (
+          <div className="py-20 text-center text-n-400 text-sm">
+            {search ? 'No leads match your filter.' : 'No leads yet. Add your first lead!'}
+          </div>
+        )}
       </div>
-      {filteredLeads.length === 0 && (
-         <div className="p-12 text-center text-slate-500">No leads match your search criteria.</div>
-      )}
     </div>
   );
 }
