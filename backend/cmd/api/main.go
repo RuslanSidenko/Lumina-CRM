@@ -38,32 +38,34 @@ func main() {
 		protected := api.Group("/")
 		protected.Use(middleware.AuthRequired())
 		{
-			// Authorized for Agent + Admin
-			protected.GET("/leads", handlers.GetLeads)
-			protected.POST("/leads", handlers.CreateLead)
-			protected.PUT("/leads/:id", handlers.UpdateLead)
-			protected.GET("/properties", handlers.GetProperties)
-			protected.POST("/properties", handlers.CreateProperty)
-			protected.PUT("/properties/:id", handlers.UpdateProperty)
+			// Dynamic RBAC for Leads
+			protected.GET("/leads", middleware.RequirePermission("leads", "view"), handlers.GetLeads)
+			protected.POST("/leads", middleware.RequirePermission("leads", "create"), handlers.CreateLead)
+			protected.PUT("/leads/:id", middleware.RequirePermission("leads", "edit"), handlers.UpdateLead)
+			
+			// Dynamic RBAC for Properties
+			protected.GET("/properties", middleware.RequirePermission("properties", "view"), handlers.GetProperties)
+			protected.POST("/properties", middleware.RequirePermission("properties", "create"), handlers.CreateProperty)
+			protected.PUT("/properties/:id", middleware.RequirePermission("properties", "edit"), handlers.UpdateProperty)
 
 			// Interaction Logs
-			protected.GET("/interactions", handlers.GetInteractions)
-			protected.POST("/interactions", handlers.CreateInteraction)
+			protected.GET("/interactions", middleware.RequirePermission("interactions", "view"), handlers.GetInteractions)
+			protected.POST("/interactions", middleware.RequirePermission("interactions", "create"), handlers.CreateInteraction)
 
 			// Task Management
-			protected.GET("/tasks", handlers.GetTasks)
-			protected.POST("/tasks", handlers.CreateTask)
-			protected.PATCH("/tasks/:id/status", handlers.UpdateTaskStatus)
+			protected.GET("/tasks", middleware.RequirePermission("tasks", "view"), handlers.GetTasks)
+			protected.POST("/tasks", middleware.RequirePermission("tasks", "create"), handlers.CreateTask)
+			protected.PATCH("/tasks/:id/status", middleware.RequirePermission("tasks", "edit"), handlers.UpdateTaskStatus)
 
 			// Deal Management
-			protected.GET("/deals", handlers.GetDeals)
-			protected.POST("/deals", handlers.CreateDeal)
-			protected.PATCH("/deals/:id/status", handlers.UpdateDealStatus)
+			protected.GET("/deals", middleware.RequirePermission("deals", "view"), handlers.GetDeals)
+			protected.POST("/deals", middleware.RequirePermission("deals", "create"), handlers.CreateDeal)
+			protected.PATCH("/deals/:id/status", middleware.RequirePermission("deals", "edit"), handlers.UpdateDealStatus)
 
 			// Analytics
-			protected.GET("/analytics", handlers.GetAnalytics)
+			protected.GET("/analytics", middleware.RequirePermission("leads", "view"), handlers.GetAnalytics)
 
-			// Authorized for Admin ONLY
+			// Admin Only Sections (Managing Users, Roles, Fields)
 			adminOnly := protected.Group("/")
 			adminOnly.Use(middleware.RequireRole("admin"))
 			{
@@ -71,6 +73,11 @@ func main() {
 				adminOnly.POST("/users", handlers.CreateUser)
 				adminOnly.DELETE("/users/:id", handlers.DeleteUser)
 				adminOnly.DELETE("/leads/:id", handlers.DeleteLead)
+
+				// RBAC Management
+				adminOnly.GET("/roles", handlers.GetRolePermissions)
+				adminOnly.POST("/roles", handlers.CreateRole)
+				adminOnly.PUT("/roles/:id", handlers.UpdateRolePermission)
 
 				// Custom Fields Management
 				adminOnly.POST("/custom-fields", handlers.CreateCustomField)

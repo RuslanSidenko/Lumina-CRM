@@ -14,6 +14,7 @@ import UserManagement from './UserManagement';
 import AddPropertyModal from './AddPropertyModal';
 import AddDealModal from './AddDealModal';
 import FieldManagement from './FieldManagement';
+import RoleManagement from './RoleManagement';
 
 import { Lead, Property } from '../types';
 
@@ -130,6 +131,12 @@ export default function DashboardClient({ initialLeads, initialProperties, token
                 >
                   Team
                 </button>
+                <button 
+                  onClick={() => setActiveTab('Roles')}
+                  className={`pb-4 text-sm font-semibold transition-all ${activeTab === 'Roles' ? 'text-brand-400 border-b-2 border-brand-400' : 'text-slate-500 hover:text-slate-300'}`}
+                >
+                  Roles
+                </button>
               </>
             )}
           </div>
@@ -171,6 +178,10 @@ export default function DashboardClient({ initialLeads, initialProperties, token
             ) : activeTab === 'Team' && role === 'admin' ? (
               <>
                 <UserManagement token={token} />
+              </>
+            ) : activeTab === 'Roles' && role === 'admin' ? (
+              <>
+                <RoleManagement token={token} />
               </>
             ) : (
               <div className="p-12 text-center text-slate-500">Feature coming soon.</div>

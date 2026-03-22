@@ -1,12 +1,15 @@
 package middleware
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"real_estate_crm/internal/models"
+	"real_estate_crm/internal/repository"
 )
 
 var JwtSecret = []byte("super_secret_crm_key") // Use ENV var in production
@@ -62,6 +65,56 @@ func RequireRole(role string) gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+		c.Next()
+	}
+}
+
+func RequirePermission(resource, action string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userRole, exists := c.Get("userRole")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			c.Abort()
+			return
+		}
+
+		roleName := userRole.(string)
+		if roleName == "admin" {
+			c.Next() // Admin always bypasses specific permission checks
+			return
+		}
+
+		var p models.RolePermission
+		err := repository.DB.QueryRow(context.Background(),
+			"SELECT can_view, can_view_all, can_create, can_edit, can_edit_all, can_delete, restricted_fields FROM role_permissions WHERE role_name = $1 AND resource = $2",
+			roleName, resource).Scan(&p.CanView, &p.CanViewAll, &p.CanCreate, &p.CanEdit, &p.CanEditAll, &p.CanDelete, &p.RestrictedFields)
+
+		if err != nil {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Permissions not defined for this role"})
+			c.Abort()
+			return
+		}
+
+		allowed := false
+		switch action {
+		case "view":
+			allowed = p.CanView
+		case "create":
+			allowed = p.CanCreate
+		case "edit":
+			allowed = p.CanEdit || p.CanEditAll
+		case "delete":
+			allowed = p.CanDelete
+		}
+
+		if !allowed {
+			c.JSON(http.StatusForbidden, gin.H{"error": fmt.Sprintf("You do not have permission to %s %s", action, resource)})
+			c.Abort()
+			return
+		}
+
+		// Store permissions in context for row-level/field-level checks in handlers
+		c.Set("permissions", p)
 		c.Next()
 	}
 }

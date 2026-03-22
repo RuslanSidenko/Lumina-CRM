@@ -141,12 +141,62 @@ func SeedDatabase() {
 		is_required BOOLEAN DEFAULT FALSE,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);
+
+	CREATE TABLE IF NOT EXISTS role_permissions (
+		id SERIAL PRIMARY KEY,
+		role_name VARCHAR(50) NOT NULL,
+		resource VARCHAR(50) NOT NULL, -- leads, properties, deals, tasks, interactions, users
+		can_view BOOLEAN DEFAULT FALSE,
+		can_view_all BOOLEAN DEFAULT FALSE, -- if false, only assigned to them
+		can_create BOOLEAN DEFAULT FALSE,
+		can_edit BOOLEAN DEFAULT FALSE,
+		can_edit_all BOOLEAN DEFAULT FALSE,
+		can_delete BOOLEAN DEFAULT FALSE,
+		restricted_fields TEXT[] DEFAULT '{}', -- fields they cannot see or edit
+		UNIQUE(role_name, resource)
+	);
 	`
 	
 	var err error
 	_, err = DB.Exec(context.Background(), schema)
 	if err != nil {
 		log.Printf("Error creating schema: %v", err)
+	}
+
+	// Default Roles Seeding
+	log.Println("Seeding default roles and permissions...")
+	defaultPermissions := []struct {
+		Role     string
+		Resource string
+		View     bool
+		ViewAll  bool
+		Create   bool
+		Edit     bool
+		EditAll  bool
+		Delete   bool
+	}{
+		// Admin: All access
+		{"admin", "leads", true, true, true, true, true, true},
+		{"admin", "properties", true, true, true, true, true, true},
+		{"admin", "deals", true, true, true, true, true, true},
+		{"admin", "tasks", true, true, true, true, true, true},
+		{"admin", "interactions", true, true, true, true, true, true},
+		{"admin", "users", true, true, true, true, true, true},
+		{"admin", "custom_fields", true, true, true, true, true, true},
+		
+		// Agent: View all properties, but only manage own leads
+		{"agent", "leads", true, false, true, true, false, false},
+		{"agent", "properties", true, true, true, true, false, false},
+		{"agent", "deals", true, false, true, true, false, false},
+		{"agent", "tasks", true, false, true, true, false, false},
+		{"agent", "interactions", true, false, true, true, false, false},
+	}
+
+	for _, p := range defaultPermissions {
+		_, _ = DB.Exec(context.Background(), 
+			`INSERT INTO role_permissions (role_name, resource, can_view, can_view_all, can_create, can_edit, can_edit_all, can_delete) 
+			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (role_name, resource) DO NOTHING`,
+			p.Role, p.Resource, p.View, p.ViewAll, p.Create, p.Edit, p.EditAll, p.Delete)
 	}
 	
 	// Migrations for existing tables

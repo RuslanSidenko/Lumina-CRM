@@ -13,15 +13,24 @@ import (
 func GetProperties(c *gin.Context) {
 	role, _ := c.Get("userRole")
 	userID, _ := c.Get("userID")
+	perms, hasPerms := c.Get("permissions")
 
 	query := "SELECT id, title, address, description, price, bedrooms, bathrooms, area, status, agent_id, images, custom_fields, created_at FROM properties"
 	args := []interface{}{}
 
-	if role.(string) == "agent" {
+	if role.(string) != "admin" && hasPerms {
+		p := perms.(models.RolePermission)
+		if !p.CanViewAll {
+			uid := int(userID.(float64))
+			query += " WHERE agent_id = $1"
+			args = append(args, uid)
+		}
+	} else if role.(string) == "agent" {
 		uid := int(userID.(float64))
 		query += " WHERE agent_id = $1"
 		args = append(args, uid)
 	}
+
 	query += " ORDER BY created_at DESC"
 
 	rows, err := repository.DB.Query(context.Background(), query, args...)
@@ -40,6 +49,21 @@ func GetProperties(c *gin.Context) {
 			log.Println("Error scanning property:", err)
 			continue
 		}
+
+		if hasPerms {
+			perm := perms.(models.RolePermission)
+			for _, rf := range perm.RestrictedFields {
+				switch rf {
+				case "price": p.Price = 0
+				case "description": p.Description = "***"
+				case "custom_fields": p.CustomFields = nil
+				}
+				if p.CustomFields != nil {
+					delete(p.CustomFields, rf)
+				}
+			}
+		}
+
 		properties = append(properties, p)
 	}
 
@@ -78,13 +102,55 @@ func CreateProperty(c *gin.Context) {
 
 func UpdateProperty(c *gin.Context) {
 	id := c.Param("id")
+	role, _ := c.Get("userRole")
+	userID, _ := c.Get("userID")
+	perms, hasPerms := c.Get("permissions")
+
 	var p models.Property
 	if err := c.ShouldBindJSON(&p); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	_, err := repository.DB.Exec(context.Background(),
+	if role.(string) != "admin" && hasPerms {
+		perm := perms.(models.RolePermission)
+		if !perm.CanEditAll {
+			var agentID int
+			err := repository.DB.QueryRow(context.Background(), "SELECT agent_id FROM properties WHERE id = $1", id).Scan(&agentID)
+			if err != nil || agentID != int(userID.(float64)) {
+				c.JSON(http.StatusForbidden, gin.H{"error": "You only have permission to edit your own listings"})
+				return
+			}
+		}
+	}
+
+	var current models.Property
+	err := repository.DB.QueryRow(context.Background(), 
+		"SELECT title, address, description, price, bedrooms, bathrooms, area, status, images, custom_fields FROM properties WHERE id=$1", id).
+		Scan(&current.Title, &current.Address, &current.Description, &current.Price, &current.Bedrooms, &current.Bathrooms, &current.Area, &current.Status, &current.Images, &current.CustomFields)
+	
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Property not found"})
+		return
+	}
+
+	if hasPerms {
+		perm := perms.(models.RolePermission)
+		for _, rf := range perm.RestrictedFields {
+			switch rf {
+			case "title": p.Title = current.Title
+			case "price": p.Price = current.Price
+			case "description": p.Description = current.Description
+			}
+			if p.CustomFields != nil && current.CustomFields != nil {
+				if _, restricted := p.CustomFields[rf]; restricted {
+					p.CustomFields[rf] = current.CustomFields[rf]
+				}
+			}
+		}
+	}
+
+	_, err = repository.DB.Exec(context.Background(),
 		"UPDATE properties SET title=$1, address=$2, description=$3, price=$4, bedrooms=$5, bathrooms=$6, area=$7, status=$8, images=$9, custom_fields=$10 WHERE id=$11",
 		p.Title, p.Address, p.Description, p.Price, p.Bedrooms, p.Bathrooms, p.Area, p.Status, p.Images, p.CustomFields, id)
 

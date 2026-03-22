@@ -88,3 +88,16 @@ type CustomFieldDefinition struct {
 	Options    []string `json:"options"`
 	IsRequired bool     `json:"is_required"`
 }
+
+type RolePermission struct {
+	ID               int      `json:"id"`
+	RoleName         string   `json:"role_name"`
+	Resource         string   `json:"resource"`
+	CanView          bool     `json:"can_view"`
+	CanViewAll       bool     `json:"can_view_all"`
+	CanCreate         bool     `json:"can_create"`
+	CanEdit          bool     `json:"can_edit"`
+	CanEditAll       bool     `json:"can_edit_all"`
+	CanDelete        bool     `json:"can_delete"`
+	RestrictedFields []string `json:"restricted_fields"`
+}

@@ -12,6 +12,7 @@ export interface Lead {
   phone: string;
   email: string;
   status: string;
+  assigned_to?: number | null;
   custom_fields?: Record<string, any>;
   created_at?: string;
 }

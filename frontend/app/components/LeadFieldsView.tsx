@@ -20,13 +20,26 @@ interface CustomFieldDefinition {
 
 export default function LeadFieldsView({ lead, token, onUpdate }: LeadFieldsViewProps) {
   const [fields, setFields] = useState<CustomFieldDefinition[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<any>(null);
   const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     fetchCustomFields();
+    fetchUsers();
   }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch('http://localhost:8080/api/v1/users', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) setUsers(await res.json());
+    } catch (err) {
+      console.error('Failed to fetch users:', err);
+    }
+  };
 
   const fetchCustomFields = async () => {
     try {
@@ -90,6 +103,10 @@ export default function LeadFieldsView({ lead, token, onUpdate }: LeadFieldsView
   const renderField = (label: string, fieldName: string, value: any, type: string = 'text') => {
     const isEditing = editingField === fieldName;
 
+    const displayValue = fieldName === 'assigned_to' 
+      ? users.find(u => u.id === value)?.name || 'Unassigned'
+      : value;
+
     return (
       <div className="flex flex-col gap-1.5 group">
         <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider flex justify-between items-center">
@@ -117,6 +134,18 @@ export default function LeadFieldsView({ lead, token, onUpdate }: LeadFieldsView
                 <option value="Contacted">Contacted</option>
                 <option value="Qualified">Qualified</option>
                 <option value="Lost">Lost</option>
+              </select>
+            ) : fieldName === 'assigned_to' ? (
+              <select
+                className="input-field py-1 bg-slate-900 border-brand-500/50"
+                value={editValue || ''}
+                onChange={(e) => setEditValue(e.target.value ? parseInt(e.target.value) : null)}
+                autoFocus
+              >
+                <option value="">Unassigned</option>
+                {users.map(u => (
+                  <option key={u.id} value={u.id}>{u.name}</option>
+                ))}
               </select>
             ) : (
               <input
@@ -150,7 +179,7 @@ export default function LeadFieldsView({ lead, token, onUpdate }: LeadFieldsView
             className="text-slate-200 font-medium py-1 px-3 border border-transparent hover:border-white/5 rounded transition-all cursor-pointer truncate"
             onClick={() => startEditing(fieldName, value)}
           >
-            {value || <span className="text-slate-600 italic">Not set</span>}
+            {displayValue || <span className="text-slate-600 italic">Not set</span>}
           </div>
         )}
       </div>
@@ -163,6 +192,7 @@ export default function LeadFieldsView({ lead, token, onUpdate }: LeadFieldsView
       {renderField('Email Address', 'email', lead.email, 'email')}
       {renderField('Phone Number', 'phone', lead.phone, 'tel')}
       {renderField('Status', 'status', lead.status)}
+      {renderField('Assigned To', 'assigned_to', lead.assigned_to)}
 
       {fields.map(f => (
         <div key={f.id}>

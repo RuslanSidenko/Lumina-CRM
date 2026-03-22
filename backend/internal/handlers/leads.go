@@ -13,15 +13,25 @@ import (
 func GetLeads(c *gin.Context) {
 	role, _ := c.Get("userRole")
 	userID, _ := c.Get("userID")
+	perms, hasPerms := c.Get("permissions")
 
 	query := "SELECT id, name, phone, email, status, assigned_to, custom_fields, created_at FROM leads"
 	args := []interface{}{}
 
-	if role.(string) == "agent" {
+	// RBAC row-level filtering
+	if role.(string) != "admin" && hasPerms {
+		p := perms.(models.RolePermission)
+		if !p.CanViewAll {
+			uid := int(userID.(float64))
+			query += " WHERE assigned_to = $1"
+			args = append(args, uid)
+		}
+	} else if role.(string) == "agent" { // Fallback for legacy
 		uid := int(userID.(float64))
 		query += " WHERE assigned_to = $1"
 		args = append(args, uid)
 	}
+	
 	query += " ORDER BY created_at DESC"
 
 	rows, err := repository.DB.Query(context.Background(), query, args...)
@@ -40,6 +50,23 @@ func GetLeads(c *gin.Context) {
 			log.Println("Error scanning lead:", err)
 			continue
 		}
+		
+		// RBAC field-level filtering
+		if hasPerms {
+			p := perms.(models.RolePermission)
+			for _, rf := range p.RestrictedFields {
+				switch rf {
+				case "phone": l.Phone = "***"
+				case "email": l.Email = "***"
+				case "custom_fields": l.CustomFields = nil
+				}
+				// Also check custom fields specifically
+				if l.CustomFields != nil {
+					delete(l.CustomFields, rf)
+				}
+			}
+		}
+		
 		leads = append(leads, l)
 	}
 	if leads == nil {
@@ -81,13 +108,61 @@ func CreateLead(c *gin.Context) {
 
 func UpdateLead(c *gin.Context) {
 	id := c.Param("id")
+	role, _ := c.Get("userRole")
+	userID, _ := c.Get("userID")
+	perms, hasPerms := c.Get("permissions")
+
 	var l models.Lead
 	if err := c.ShouldBindJSON(&l); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	_, err := repository.DB.Exec(context.Background(),
+	// 1. RBAC Check for Edit Permission (Row-level)
+	if role.(string) != "admin" && hasPerms {
+		p := perms.(models.RolePermission)
+		if !p.CanEditAll {
+			// Check if lead is assigned to current user
+			var assignedTo *int
+			err := repository.DB.QueryRow(context.Background(), "SELECT assigned_to FROM leads WHERE id = $1", id).Scan(&assignedTo)
+			if err != nil || assignedTo == nil || *assignedTo != int(userID.(float64)) {
+				c.JSON(http.StatusForbidden, gin.H{"error": "You only have permission to edit your own leads"})
+				return
+			}
+		}
+	}
+
+	// 2. Fetch current lead data for field conservation
+	var current models.Lead
+	err := repository.DB.QueryRow(context.Background(), 
+		"SELECT name, phone, email, status, assigned_to, custom_fields FROM leads WHERE id=$1", id).
+		Scan(&current.Name, &current.Phone, &current.Email, &current.Status, &current.AssignedTo, &current.CustomFields)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Lead not found"})
+		return
+	}
+
+	// 3. Field-level protection: Restore restricted fields from the previous state
+	if hasPerms {
+		p := perms.(models.RolePermission)
+		for _, rf := range p.RestrictedFields {
+			switch rf {
+			case "name": l.Name = current.Name
+			case "phone": l.Phone = current.Phone
+			case "email": l.Email = current.Email
+			case "status": l.Status = current.Status
+			case "assigned_to": l.AssignedTo = current.AssignedTo
+			}
+			// Maintain custom fields if restricted
+			if l.CustomFields != nil && current.CustomFields != nil {
+				if _, restricted := l.CustomFields[rf]; restricted {
+					l.CustomFields[rf] = current.CustomFields[rf]
+				}
+			}
+		}
+	}
+
+	_, err = repository.DB.Exec(context.Background(),
 		"UPDATE leads SET name=$1, phone=$2, email=$3, status=$4, assigned_to=$5, custom_fields=$6 WHERE id=$7",
 		l.Name, l.Phone, l.Email, l.Status, l.AssignedTo, l.CustomFields, id)
 
