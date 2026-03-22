@@ -20,8 +20,8 @@ interface RoleManagementProps {
 }
 
 const AVAILABLE_FIELDS: Record<string, string[]> = {
-  leads: ['name', 'phone', 'email', 'status', 'assigned_to', 'custom_fields'],
-  properties: ['title', 'address', 'description', 'price', 'bedrooms', 'bathrooms', 'area', 'status', 'agent_id', 'images', 'custom_fields'],
+  leads: ['name', 'phone', 'email', 'status', 'assigned_to'],
+  properties: ['title', 'address', 'description', 'price', 'bedrooms', 'bathrooms', 'area', 'status', 'agent_id', 'images'],
   deals: ['lead_id', 'property_id', 'agent_id', 'price', 'status', 'close_date'],
   tasks: ['lead_id', 'property_id', 'agent_id', 'title', 'description', 'due_at', 'status'],
   interactions: ['lead_id', 'agent_id', 'type', 'content'],
@@ -31,6 +31,7 @@ const AVAILABLE_FIELDS: Record<string, string[]> = {
 
 export default function RoleManagement({ token }: RoleManagementProps) {
   const [permissions, setPermissions] = useState<RolePermission[]>([]);
+  const [customFields, setCustomFields] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [newRoleName, setNewRoleName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
@@ -38,6 +39,7 @@ export default function RoleManagement({ token }: RoleManagementProps) {
 
   useEffect(() => {
     fetchPermissions();
+    fetchCustomFields();
   }, []);
 
   const fetchPermissions = async () => {
@@ -57,6 +59,28 @@ export default function RoleManagement({ token }: RoleManagementProps) {
       console.error(err);
     }
     setLoading(false);
+  };
+
+  const fetchCustomFields = async () => {
+    try {
+      const res = await fetch('http://localhost:8080/api/v1/custom-fields', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) setCustomFields(await res.json());
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const getAvailableFieldsForResource = (resource: string) => {
+    const standard = AVAILABLE_FIELDS[resource] || [];
+    if (resource === 'leads' || resource === 'properties') {
+      const relevantCustom = customFields
+        .filter(cf => cf.entity_type === (resource === 'leads' ? 'lead' : 'property'))
+        .map(cf => cf.label);
+      return [...standard, ...relevantCustom];
+    }
+    return standard;
   };
 
   const updatePermission = async (id: number, updates: Partial<RolePermission>) => {
@@ -239,7 +263,7 @@ export default function RoleManagement({ token }: RoleManagementProps) {
                               {activeSelector === p.id && (
                                 <div className="absolute top-full right-0 z-50 mt-1 w-48 bg-slate-900 border border-white/10 rounded-xl shadow-2xl p-2 animate-in zoom-in-95 fade-in duration-200">
                                    <div className="max-h-48 overflow-y-auto">
-                                      {(AVAILABLE_FIELDS[p.resource] || []).map(field => (
+                                      {getAvailableFieldsForResource(p.resource).map(field => (
                                         <label key={field} className="flex items-center gap-2 p-2 hover:bg-white/5 rounded cursor-pointer group">
                                            <input 
                                              type="checkbox" 
@@ -250,7 +274,7 @@ export default function RoleManagement({ token }: RoleManagementProps) {
                                            <span className="text-[11px] text-slate-300 group-hover:text-white">{field}</span>
                                         </label>
                                       ))}
-                                      {(AVAILABLE_FIELDS[p.resource] || []).length === 0 && <p className="p-2 text-[11px] text-slate-500 text-center italic">No fields available</p>}
+                                      {getAvailableFieldsForResource(p.resource).length === 0 && <p className="p-2 text-[11px] text-slate-500 text-center italic">No fields available</p>}
                                    </div>
                                 </div>
                               )}

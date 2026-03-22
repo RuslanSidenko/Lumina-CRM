@@ -203,8 +203,26 @@ func SeedDatabase() {
 	if _, err := DB.Exec(context.Background(), "ALTER TABLE leads ADD COLUMN IF NOT EXISTS custom_fields JSONB DEFAULT '{}'"); err != nil {
 		log.Printf("Migration error (leads custom_fields): %v", err)
 	}
+	if _, err := DB.Exec(context.Background(), "ALTER TABLE leads ADD COLUMN IF NOT EXISTS assigned_to INTEGER REFERENCES users(id) ON DELETE SET NULL"); err != nil {
+		log.Printf("Migration error (leads assigned_to): %v", err)
+	}
 	if _, err := DB.Exec(context.Background(), "ALTER TABLE properties ADD COLUMN IF NOT EXISTS address VARCHAR(255)"); err != nil {
 		log.Printf("Migration error (properties address): %v", err)
+	}
+	if _, err := DB.Exec(context.Background(), "ALTER TABLE properties ADD COLUMN IF NOT EXISTS description TEXT"); err != nil {
+		log.Printf("Migration error (properties description): %v", err)
+	}
+	if _, err := DB.Exec(context.Background(), "ALTER TABLE properties ADD COLUMN IF NOT EXISTS bedrooms INTEGER DEFAULT 0"); err != nil {
+		log.Printf("Migration error (properties bedrooms): %v", err)
+	}
+	if _, err := DB.Exec(context.Background(), "ALTER TABLE properties ADD COLUMN IF NOT EXISTS bathrooms INTEGER DEFAULT 0"); err != nil {
+		log.Printf("Migration error (properties bathrooms): %v", err)
+	}
+	if _, err := DB.Exec(context.Background(), "ALTER TABLE properties ADD COLUMN IF NOT EXISTS area INTEGER DEFAULT 0"); err != nil {
+		log.Printf("Migration error (properties area): %v", err)
+	}
+	if _, err := DB.Exec(context.Background(), "ALTER TABLE properties ADD COLUMN IF NOT EXISTS images TEXT[] DEFAULT '{}'"); err != nil {
+		log.Printf("Migration error (properties images): %v", err)
 	}
 	if _, err := DB.Exec(context.Background(), "ALTER TABLE properties ADD COLUMN IF NOT EXISTS custom_fields JSONB DEFAULT '{}'"); err != nil {
 		log.Printf("Migration error (properties custom_fields): %v", err)
