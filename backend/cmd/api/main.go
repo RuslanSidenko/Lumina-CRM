@@ -42,6 +42,24 @@ func main() {
 			protected.GET("/leads", handlers.GetLeads)
 			protected.POST("/leads", handlers.CreateLead)
 			protected.GET("/properties", handlers.GetProperties)
+			protected.POST("/properties", handlers.CreateProperty)
+
+			// Interaction Logs
+			protected.GET("/interactions", handlers.GetInteractions)
+			protected.POST("/interactions", handlers.CreateInteraction)
+
+			// Task Management
+			protected.GET("/tasks", handlers.GetTasks)
+			protected.POST("/tasks", handlers.CreateTask)
+			protected.PATCH("/tasks/:id/status", handlers.UpdateTaskStatus)
+
+			// Deal Management
+			protected.GET("/deals", handlers.GetDeals)
+			protected.POST("/deals", handlers.CreateDeal)
+			protected.PATCH("/deals/:id/status", handlers.UpdateDealStatus)
+
+			// Analytics
+			protected.GET("/analytics", handlers.GetAnalytics)
 
 			// Authorized for Admin ONLY
 			adminOnly := protected.Group("/")

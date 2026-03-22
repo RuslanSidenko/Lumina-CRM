@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"time"
 
@@ -31,7 +30,6 @@ func Login(c *gin.Context) {
 		Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.Role)
 	
 	if err != nil {
-		log.Println("User not found or db error", err)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
 		return
 	}

@@ -27,11 +27,8 @@ CREATE TABLE IF NOT EXISTS properties (
 );
 
 -- Mock Data (only works on first initialization from scratch)
--- Password corresponds to "password" bcrypt hash for both
-INSERT INTO users (name, email, password_hash, role) VALUES 
-('Admin User', 'admin@example.com', '$2y$10$wN10G8nN5d.hA/J0K47V1eUxz1r1C8G8yJ0H.n4l0x3R2hW7c4iFq', 'admin'),
-('Agent User', 'agent@example.com', '$2y$10$wN10G8nN5d.hA/J0K47V1eUxz1r1C8G8yJ0H.n4l0x3R2hW7c4iFq', 'agent')
-ON CONFLICT (email) DO NOTHING;
+-- Users will be seeded by the backend on startup if they don't exist to ensure correct hashing.
+
 
 INSERT INTO leads (name, phone, email, status, assigned_to) VALUES 
 ('Alice Smith', '555-0101', 'alice@example.com', 'New', 2),
