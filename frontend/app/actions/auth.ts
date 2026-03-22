@@ -2,12 +2,12 @@
 
 import { cookies } from 'next/headers'
 
-export async function loginAction(email: string, password: string) {
+export async function loginAction(username: string, password: string) {
   try {
     const res = await fetch('http://localhost:8080/api/v1/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ username, password })
     });
     const data = await res.json();
     
@@ -28,3 +28,22 @@ export async function logoutAction() {
   cookieStore.delete('crm_token');
   cookieStore.delete('crm_role');
 }
+
+export async function changePasswordAction(token: string, currentPassword: string, newPassword: string) {
+  try {
+    const res = await fetch('http://localhost:8080/api/v1/auth/change-password', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+    });
+    const data = await res.json();
+    if (res.ok) return { success: true };
+    return { success: false, error: data.error || 'Failed to change password' };
+  } catch {
+    return { success: false, error: 'Network error. Is backend running?' };
+  }
+}
+

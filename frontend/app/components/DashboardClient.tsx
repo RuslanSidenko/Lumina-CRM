@@ -15,6 +15,7 @@ import AddDealModal from './AddDealModal';
 import FieldManagement from './FieldManagement';
 import RoleManagement from './RoleManagement';
 import APIKeyManagement from './APIKeyManagement';
+import ChangePassword from './ChangePassword';
 
 import { Lead, Property } from '../types';
 
@@ -25,13 +26,14 @@ interface DashboardClientProps {
   role: string;
 }
 
-const TABS = ['Leads', 'Properties', 'Deals', 'Insights', 'Fields', 'Team', 'Roles', 'API'];
+const TABS = ['Leads', 'Properties', 'Deals', 'Insights', 'Fields', 'Team', 'Roles', 'API', 'Settings'];
 
 export default function DashboardClient({ initialLeads, initialProperties, token, role }: DashboardClientProps) {
   const [activeTab, setActiveTab] = useState('Leads');
   const [leads, setLeads] = useState(initialLeads || []);
   const [properties, setProperties] = useState(initialProperties || []);
   const [analytics, setAnalytics] = useState({ total_leads: 0, active_properties: 0, total_revenue: 0 });
+  const [permissions, setPermissions] = useState<any[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [showAddLead, setShowAddLead] = useState(false);
   const [showAddProperty, setShowAddProperty] = useState(false);
@@ -50,6 +52,13 @@ export default function DashboardClient({ initialLeads, initialProperties, token
       if (resLeads.ok) setLeads(await resLeads.json());
       if (resProps.ok) setProperties(await resProps.json());
       if (resAnalytics.ok) setAnalytics(await resAnalytics.json());
+
+      const resPerms = await fetch('http://localhost:8080/api/v1/roles', { headers }); // We might need a better endpoint for 'my permissions'
+      if (resPerms.ok) {
+        const allPerms = await resPerms.json();
+        setPermissions(allPerms.filter((p: any) => p.role_name === role));
+      }
+
       setRefreshTrigger(p => p + 1);
     } catch (e) { console.error(e); }
   };
@@ -69,7 +78,7 @@ export default function DashboardClient({ initialLeads, initialProperties, token
 
   return (
     <div className="flex h-screen w-full bg-n-800 overflow-hidden">
-      <Sidebar role={role} activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Sidebar role={role} activeTab={activeTab} setActiveTab={setActiveTab} permissions={permissions} />
 
       {/* Main area — offset by sidebar width */}
       <div className="flex-1 ml-[220px] flex flex-col h-screen overflow-hidden">
@@ -141,9 +150,10 @@ export default function DashboardClient({ initialLeads, initialProperties, token
           {activeTab === 'Deals'    && <div className="animate-slide-up"><DealsPipeline token={token} key={refreshTrigger} /></div>}
           {activeTab === 'Insights' && <div className="animate-slide-up"><AnalyticsDashboard token={token} /></div>}
           {activeTab === 'Fields'   && role === 'admin' && <FieldManagement token={token} />}
-          {activeTab === 'Team'     && role === 'admin' && <UserManagement token={token} />}
+          {activeTab === 'Team'     && (role === 'admin' || permissions.some(p => p.resource === 'users' && p.can_view)) && <UserManagement token={token} />}
           {activeTab === 'Roles'    && role === 'admin' && <RoleManagement token={token} />}
           {activeTab === 'API'      && role === 'admin' && <APIKeyManagement token={token} />}
+          {activeTab === 'Settings' && <ChangePassword token={token} />}
         </main>
       </div>
 

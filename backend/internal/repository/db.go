@@ -73,6 +73,7 @@ func SeedDatabase() {
 	schema := `
 	CREATE TABLE IF NOT EXISTS users (
 		id SERIAL PRIMARY KEY,
+		username VARCHAR(50) UNIQUE,
 		name VARCHAR(100) NOT NULL,
 		email VARCHAR(100) UNIQUE NOT NULL,
 		password_hash VARCHAR(255) NOT NULL,
@@ -197,6 +198,7 @@ func SeedDatabase() {
 		{"agent", "deals", true, false, true, true, false, false},
 		{"agent", "tasks", true, false, true, true, false, false},
 		{"agent", "interactions", true, false, true, true, false, false},
+		{"agent", "users", false, false, false, false, false, false},
 	}
 
 	for _, p := range defaultPermissions {
@@ -205,6 +207,13 @@ func SeedDatabase() {
 			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (role_name, resource) DO NOTHING`,
 			p.Role, p.Resource, p.View, p.ViewAll, p.Create, p.Edit, p.EditAll, p.Delete)
 	}
+
+	// Ensure all existing roles have the 'users' resource entry
+	_, _ = DB.Exec(context.Background(), `
+		INSERT INTO role_permissions (role_name, resource)
+		SELECT DISTINCT role_name, 'users' FROM role_permissions
+		ON CONFLICT DO NOTHING
+	`)
 	
 	// Migrations for existing tables
 	if _, err := DB.Exec(context.Background(), "ALTER TABLE leads ADD COLUMN IF NOT EXISTS custom_fields JSONB DEFAULT '{}'"); err != nil {
@@ -275,18 +284,23 @@ func SeedDatabase() {
 			f.EntityType, f.Label, f.FieldType, f.Options)
 	}
 
+	// Add username column migration for existing tables
+	if _, err := DB.Exec(context.Background(), "ALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(50) UNIQUE"); err != nil {
+		log.Printf("Migration error (users username): %v", err)
+	}
+
 	// Ensure local users have correct passwords for testing
 	log.Println("Ensuring test users exist with password: 'password'...")
 	hash, _ := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.DefaultCost)
 	
 	seedQuery := `
-		INSERT INTO users (name, email, password_hash, role) 
-		VALUES ($1, $2, $3, $4), ($5, $6, $7, $8)
-		ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, role = EXCLUDED.role
+		INSERT INTO users (username, name, email, password_hash, role) 
+		VALUES ($1, $2, $3, $4, $5), ($6, $7, $8, $9, $10)
+		ON CONFLICT (email) DO UPDATE SET username = EXCLUDED.username, password_hash = EXCLUDED.password_hash, role = EXCLUDED.role
 	`
 	_, err = DB.Exec(context.Background(), seedQuery,
-		"Admin User", "admin@example.com", string(hash), "admin",
-		"Agent User", "agent@example.com", string(hash), "agent",
+		"admin", "Admin User", "admin@example.com", string(hash), "admin",
+		"agent", "Agent User", "agent@example.com", string(hash), "agent",
 	)
 	if err != nil {
 		log.Printf("Error seeding users: %v", err)

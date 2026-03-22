@@ -39,6 +39,9 @@ func main() {
 		protected := api.Group("/")
 		protected.Use(middleware.AuthRequired())
 		{
+			// Auth actions available to all logged-in users
+			protected.PUT("/auth/change-password", handlers.ChangePassword)
+
 			// Dynamic RBAC for Leads
 			protected.GET("/leads", middleware.RequirePermission("leads", "view"), handlers.GetLeads)
 			protected.POST("/leads", middleware.RequirePermission("leads", "create"), handlers.CreateLead)
@@ -66,14 +69,16 @@ func main() {
 			// Analytics
 			protected.GET("/analytics", middleware.RequirePermission("leads", "view"), handlers.GetAnalytics)
 
-			// Admin Only Sections (Managing Users, Roles, Fields)
+			// User Management (Dynamic RBAC)
+			protected.GET("/users", middleware.RequirePermission("users", "view"), handlers.GetUsers)
+			protected.POST("/users", middleware.RequirePermission("users", "create"), handlers.CreateUser)
+			protected.PUT("/users/:id/role", middleware.RequirePermission("users", "edit"), handlers.UpdateUserRole)
+			protected.DELETE("/users/:id", middleware.RequirePermission("users", "delete"), handlers.DeleteUser)
+
+			// Admin Only Sections (Managing Roles, Fields, API Keys)
 			adminOnly := protected.Group("/")
 			adminOnly.Use(middleware.RequireRole("admin"))
 			{
-				adminOnly.GET("/users", handlers.GetUsers)
-				adminOnly.POST("/users", handlers.CreateUser)
-				adminOnly.PUT("/users/:id/role", handlers.UpdateUserRole)
-				adminOnly.DELETE("/users/:id", handlers.DeleteUser)
 				adminOnly.DELETE("/leads/:id", handlers.DeleteLead)
 
 				// RBAC Management

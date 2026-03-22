@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react';
-import { User } from '../types';
 
 interface UserManagementProps {
   token: string;
@@ -11,7 +10,7 @@ export default function UserManagement({ token }: UserManagementProps) {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'agent' });
+  const [form, setForm] = useState({ username: '', name: '', email: '', password: '', role: 'agent' });
 
   useEffect(() => {
     fetchUsers();
@@ -38,7 +37,7 @@ export default function UserManagement({ token }: UserManagementProps) {
     });
     if (res.ok) {
       setShowAddForm(false);
-      setForm({ name: '', email: '', password: '', role: 'agent' });
+      setForm({ username: '', name: '', email: '', password: '', role: 'agent' });
       fetchUsers();
     }
   };
@@ -95,13 +94,14 @@ export default function UserManagement({ token }: UserManagementProps) {
                 <td className="px-6 py-4">
                   <select 
                     value={u.role}
+                    disabled={u.role === 'admin'}
                     onChange={(e) => updateRole(u.id, e.target.value)}
                     className={`bg-transparent border-none text-[10px] font-bold uppercase cursor-pointer focus:ring-0 ${
-                      u.role === 'admin' ? 'text-purple-400' : 'text-blue-400'
+                      u.role === 'admin' ? 'text-purple-400 opacity-50 cursor-not-allowed' : 'text-blue-400'
                     }`}
                   >
                     <option value="agent" className="bg-slate-900">Agent</option>
-                    <option value="admin" className="bg-slate-900">Admin</option>
+                    <option value="admin" className="bg-slate-900" disabled>Admin</option>
                   </select>
                 </td>
                 <td className="px-6 py-4 text-slate-500 text-xs text-nowrap">
@@ -110,7 +110,9 @@ export default function UserManagement({ token }: UserManagementProps) {
                 <td className="px-6 py-4 text-right">
                   <button 
                     onClick={() => deleteUser(u.id)}
-                    className="text-red-500 opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-400"
+                    disabled={u.role === 'admin'}
+                    className={`text-red-500 opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-400 ${u.role === 'admin' ? 'invisible pointer-events-none' : ''}`}
+                    title={u.role === 'admin' ? "Admins cannot be deleted" : "Delete user"}
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                   </button>
@@ -132,16 +134,26 @@ export default function UserManagement({ token }: UserManagementProps) {
               </button>
               <h3 className="text-xl font-bold mb-6">Add New User</h3>
               <form onSubmit={createUser} className="flex flex-col gap-4">
-                 <div>
-                   <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Full Name</label>
-                   <input 
-                    type="text" 
-                    required 
-                    className="input-field" 
-                    value={form.name} 
-                    onChange={e => setForm({...form, name: e.target.value})}
-                   />
-                 </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Username</label>
+                    <input
+                     type="text"
+                     className="input-field"
+                     placeholder="Optional"
+                     value={form.username}
+                     onChange={e => setForm({...form, username: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Full Name</label>
+                    <input
+                     type="text"
+                     required
+                     className="input-field"
+                     value={form.name}
+                     onChange={e => setForm({...form, name: e.target.value})}
+                    />
+                  </div>
                  <div>
                    <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Email Address</label>
                    <input 

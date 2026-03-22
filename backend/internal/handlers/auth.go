@@ -14,7 +14,7 @@ import (
 )
 
 type LoginRequest struct {
-	Email    string `json:"email" binding:"required,email"`
+	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
 
@@ -26,16 +26,17 @@ func Login(c *gin.Context) {
 	}
 
 	var user models.User
-	err := repository.DB.QueryRow(context.Background(), "SELECT id, name, email, password_hash, role FROM users WHERE email = $1", req.Email).
+	err := repository.DB.QueryRow(context.Background(),
+		"SELECT id, name, email, password_hash, role FROM users WHERE username = $1", req.Username).
 		Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.Role)
-	
+
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
 		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
 		return
 	}
 
@@ -59,4 +60,56 @@ func Login(c *gin.Context) {
 			"role": user.Role,
 		},
 	})
+}
+
+type ChangePasswordRequest struct {
+	CurrentPassword string `json:"current_password" binding:"required"`
+	NewPassword     string `json:"new_password" binding:"required,min=6"`
+}
+
+func ChangePassword(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var req ChangePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Fetch current password hash
+	var currentHash string
+	err := repository.DB.QueryRow(context.Background(),
+		"SELECT password_hash FROM users WHERE id = $1", userID).
+		Scan(&currentHash)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Verify current password
+	if err := bcrypt.CompareHashAndPassword([]byte(currentHash), []byte(req.CurrentPassword)); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Current password is incorrect"})
+		return
+	}
+
+	// Hash new password
+	newHash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+		return
+	}
+
+	// Update in DB
+	_, err = repository.DB.Exec(context.Background(),
+		"UPDATE users SET password_hash = $1 WHERE id = $2", string(newHash), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
 }

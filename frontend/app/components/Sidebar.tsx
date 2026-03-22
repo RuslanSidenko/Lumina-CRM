@@ -5,6 +5,7 @@ interface SidebarProps {
   role: string;
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  permissions: any[];
 }
 
 const NAV_ITEMS = [
@@ -21,8 +22,9 @@ const ADMIN_ITEMS = [
   { name: 'API',    icon: 'M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
 ];
 
-export default function Sidebar({ role, activeTab, setActiveTab }: SidebarProps) {
+export default function Sidebar({ role, activeTab, setActiveTab, permissions }: SidebarProps) {
   const router = useRouter();
+  const canSeeTeam = role === 'admin' || permissions.some(p => p.resource === 'users' && p.can_view);
   const menuItems = [...NAV_ITEMS, ...(role === 'admin' ? ADMIN_ITEMS : [])];
 
   const handleLogout = async () => {
@@ -76,9 +78,20 @@ export default function Sidebar({ role, activeTab, setActiveTab }: SidebarProps)
           <>
             <div className="border-t border-n-500/40 my-3" />
             <p className="section-title px-3 mb-3">Admin</p>
-            {ADMIN_ITEMS.map(item => <NavItem key={item.name} item={item} />)}
+            {ADMIN_ITEMS.filter(item => item.name !== 'Team').map(item => <NavItem key={item.name} item={item} />)}
           </>
         )}
+
+        {canSeeTeam && (
+          <>
+            <div className="border-t border-n-500/40 my-3" />
+            <p className="section-title px-3 mb-3">Management</p>
+            <NavItem item={ADMIN_ITEMS.find(i => i.name === 'Team')!} />
+          </>
+        )}
+
+        <div className="border-t border-n-500/40 my-3" />
+        <NavItem item={{ name: 'Settings', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' }} />
       </nav>
 
       {/* Footer */}

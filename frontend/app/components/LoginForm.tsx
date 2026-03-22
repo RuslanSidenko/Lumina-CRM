@@ -5,7 +5,7 @@ import { loginAction } from '../actions/auth';
 import { useRouter } from 'next/navigation';
 
 export default function LoginForm() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -15,7 +15,7 @@ export default function LoginForm() {
     e.preventDefault();
     setLoading(true);
     setError('');
-    const res = await loginAction(email, password);
+    const res = await loginAction(username, password);
     if (res.success) {
       router.refresh();
     } else {
@@ -57,25 +57,29 @@ export default function LoginForm() {
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="input-label">Email</label>
+              <label className="input-label">Username</label>
               <input
+                id="login-username"
                 className="input-field"
-                type="email"
-                placeholder="admin@example.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+                type="text"
+                placeholder="admin"
+                value={username}
+                onChange={e => setUsername(e.target.value)}
                 required
+                autoComplete="username"
               />
             </div>
             <div>
               <label className="input-label">Password</label>
               <input
+                id="login-password"
                 className="input-field"
                 type="password"
                 placeholder="••••••••"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
+                autoComplete="current-password"
               />
             </div>
             <button className="btn-primary w-full mt-2 h-10" type="submit" disabled={loading}>
@@ -90,7 +94,7 @@ export default function LoginForm() {
         </div>
 
         <p className="text-center text-xs text-n-500 mt-4">
-          Default: admin@example.com / password
+          Default: <span className="text-n-400 font-medium">admin</span> / password
         </p>
       </div>
     </div>
