@@ -61,6 +61,25 @@ func CreateUser(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"id": newID, "message": "User created successfully"})
 }
 
+func UpdateUserRole(c *gin.Context) {
+	id := c.Param("id")
+	var req struct {
+		Role string `json:"role" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	_, err := repository.DB.Exec(context.Background(), "UPDATE users SET role = $1 WHERE id = $2", req.Role, id)
+	if err != nil {
+		log.Println("Update user role error:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user role"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "User role updated successfully"})
+}
+
 func DeleteUser(c *gin.Context) {
 	id := c.Param("id")
 	_, err := repository.DB.Exec(context.Background(), "DELETE FROM users WHERE id = $1", id)

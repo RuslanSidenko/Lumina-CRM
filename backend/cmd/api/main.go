@@ -71,6 +71,7 @@ func main() {
 			{
 				adminOnly.GET("/users", handlers.GetUsers)
 				adminOnly.POST("/users", handlers.CreateUser)
+				adminOnly.PUT("/users/:id/role", handlers.UpdateUserRole)
 				adminOnly.DELETE("/users/:id", handlers.DeleteUser)
 				adminOnly.DELETE("/leads/:id", handlers.DeleteLead)
 

@@ -43,6 +43,18 @@ export default function UserManagement({ token }: UserManagementProps) {
     }
   };
 
+  const updateRole = async (id: number, role: string) => {
+    const res = await fetch(`http://localhost:8080/api/v1/users/${id}/role`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ role })
+    });
+    if (res.ok) fetchUsers();
+  };
+
   const deleteUser = async (id: number) => {
     if (!confirm('Are you sure you want to remove this user?')) return;
     const res = await fetch(`http://localhost:8080/api/v1/users/${id}`, {
@@ -81,11 +93,16 @@ export default function UserManagement({ token }: UserManagementProps) {
                 <td className="px-6 py-4 font-medium text-slate-200">{u.name}</td>
                 <td className="px-6 py-4 text-slate-400">{u.email}</td>
                 <td className="px-6 py-4">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                    u.role === 'admin' ? 'bg-purple-500/20 text-purple-400' : 'bg-blue-500/20 text-blue-400'
-                  }`}>
-                    {u.role}
-                  </span>
+                  <select 
+                    value={u.role}
+                    onChange={(e) => updateRole(u.id, e.target.value)}
+                    className={`bg-transparent border-none text-[10px] font-bold uppercase cursor-pointer focus:ring-0 ${
+                      u.role === 'admin' ? 'text-purple-400' : 'text-blue-400'
+                    }`}
+                  >
+                    <option value="agent" className="bg-slate-900">Agent</option>
+                    <option value="admin" className="bg-slate-900">Admin</option>
+                  </select>
                 </td>
                 <td className="px-6 py-4 text-slate-500 text-xs text-nowrap">
                   {new Date(u.created_at).toLocaleDateString()}

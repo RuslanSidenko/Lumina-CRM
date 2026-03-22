@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"real_estate_crm/internal/models"
@@ -53,8 +54,15 @@ func CreateDeal(c *gin.Context) {
 		return
 	}
 
+	if d.LeadID <= 0 || d.PropertyID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "A valid Lead and Property must be selected"})
+		return
+	}
+
 	userID, _ := c.Get("userID")
 	d.AgentID = int(userID.(float64))
+
+	log.Printf("Creating deal for Lead: %d, Property: %d, Agent: %d", d.LeadID, d.PropertyID, d.AgentID)
 
 	err := repository.DB.QueryRow(context.Background(),
 		"INSERT INTO deals (lead_id, property_id, agent_id, price, status, close_date) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
@@ -62,6 +70,10 @@ func CreateDeal(c *gin.Context) {
 
 	if err != nil {
 		log.Println("Create deal error:", err)
+		if strings.Contains(err.Error(), "fkey") {
+			c.JSON(http.StatusNotFound, gin.H{"error": "The selected Lead or Property no longer exists"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create deal"})
 		return
 	}

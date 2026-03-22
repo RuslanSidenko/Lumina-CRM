@@ -20,15 +20,22 @@ export default function AddDealModal({ token, leads, properties, onClose, onSucc
     close_date: new Date().toISOString().split('T')[0]
   });
 
+  const canSubmit = form.lead_id > 0 && form.property_id > 0 && form.price > 0;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const payload = {
+      ...form,
+      close_date: form.close_date ? new Date(form.close_date).toISOString() : null
+    };
+
     const res = await fetch('http://localhost:8080/api/v1/deals', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`
       },
-      body: JSON.stringify(form)
+      body: JSON.stringify(payload)
     });
     if (res.ok) onSuccess();
   };
@@ -85,8 +92,14 @@ export default function AddDealModal({ token, leads, properties, onClose, onSucc
               <input type="date" className="input-field" value={form.close_date} onChange={e => setForm({...form, close_date: e.target.value})} />
            </div>
 
-           <button type="submit" className="btn-primary py-4 mt-2">Create Deal Record</button>
-        </form>
+            <button 
+              type="submit" 
+              disabled={!canSubmit}
+              className={`btn-primary py-4 mt-2 ${!canSubmit ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
+            >
+              {canSubmit ? 'Create Deal Record' : 'Assign Lead & Property first'}
+            </button>
+         </form>
       </div>
     </div>
   );
