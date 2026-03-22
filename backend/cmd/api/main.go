@@ -65,8 +65,18 @@ func main() {
 			adminOnly := protected.Group("/")
 			adminOnly.Use(middleware.RequireRole("admin"))
 			{
+				adminOnly.GET("/users", handlers.GetUsers)
+				adminOnly.POST("/users", handlers.CreateUser)
+				adminOnly.DELETE("/users/:id", handlers.DeleteUser)
 				adminOnly.DELETE("/leads/:id", handlers.DeleteLead)
+
+				// Custom Fields Management
+				adminOnly.POST("/custom-fields", handlers.CreateCustomField)
+				adminOnly.PUT("/custom-fields/:id", handlers.UpdateCustomField)
+				adminOnly.DELETE("/custom-fields/:id", handlers.DeleteCustomField)
 			}
+			// Agents can also read field definitions
+			protected.GET("/custom-fields", handlers.GetCustomFields)
 		}
 	}
 

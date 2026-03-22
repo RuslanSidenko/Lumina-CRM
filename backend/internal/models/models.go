@@ -17,8 +17,9 @@ type Lead struct {
 	Phone      string    `json:"phone"`
 	Email      string    `json:"email"`
 	Status     string    `json:"status"`
-	AssignedTo *int      `json:"assigned_to"`
-	CreatedAt  time.Time `json:"created_at"`
+	AssignedTo   *int                   `json:"assigned_to"`
+	CustomFields map[string]interface{} `json:"custom_fields"`
+	CreatedAt    time.Time              `json:"created_at"`
 }
 
 type Property struct {
@@ -31,9 +32,10 @@ type Property struct {
 	Bathrooms   int       `json:"bathrooms"`
 	Area        int       `json:"area"`
 	Status      string    `json:"status"`
-	AgentID     int       `json:"agent_id"`
-	Images      []string  `json:"images"`
-	CreatedAt   time.Time `json:"created_at"`
+	AgentID      int                    `json:"agent_id"`
+	Images       []string               `json:"images"`
+	CustomFields map[string]interface{} `json:"custom_fields"`
+	CreatedAt    time.Time              `json:"created_at"`
 }
 
 // Struct for creating a New Lead via POST
@@ -42,7 +44,8 @@ type CreateLeadRequest struct {
 	Phone      string `json:"phone" binding:"required"`
 	Email      string `json:"email" binding:"required,email"`
 	Status     string `json:"status" binding:"required"`
-	AssignedTo *int   `json:"assigned_to"`
+	AssignedTo   *int                   `json:"assigned_to"`
+	CustomFields map[string]interface{} `json:"custom_fields"`
 }
 
 type Interaction struct {
@@ -75,4 +78,13 @@ type Deal struct {
 	Status     string    `json:"status"` // Offer, Under Contract, Escrow, Closed, Lost
 	CloseDate  *time.Time `json:"close_date"`
 	CreatedAt  time.Time `json:"created_at"`
+}
+
+type CustomFieldDefinition struct {
+	ID         int      `json:"id"`
+	EntityType string   `json:"entity_type"` // lead, property
+	Label      string   `json:"label"`
+	FieldType  string   `json:"field_type"` // text, number, select
+	Options    []string `json:"options"`
+	IsRequired bool     `json:"is_required"`
 }

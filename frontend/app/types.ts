@@ -1,3 +1,11 @@
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: 'admin' | 'agent';
+  created_at: string;
+}
+
 export interface Lead {
   id: number;
   name: string;

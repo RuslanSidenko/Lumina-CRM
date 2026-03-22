@@ -15,38 +15,45 @@ export default function TaskManager({ leadId, token }: TaskManagerProps) {
 
   useEffect(() => {
     fetchTasks();
-  }, [leadId]);
+  }, [leadId, token]);
 
   const fetchTasks = async () => {
-    const res = await fetch(`http://localhost:8080/api/v1/tasks?lead_id=${leadId}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if (res.ok) {
-      setTasks(await res.json());
+    try {
+      const res = await fetch(`http://localhost:8080/api/v1/tasks?lead_id=${leadId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setTasks(await res.json());
+      }
+    } catch (e) {
+      console.error(e);
     }
   };
 
   const createTask = async () => {
     if (!newTask.title) return;
-    const res = await fetch('http://localhost:8080/api/v1/tasks', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        lead_id: leadId,
-        agent_id: 1, // Placeholder
-        title: newTask.title,
-        description: '',
-        due_at: newTask.due_at || new Date().toISOString(),
-        status: 'pending'
-      })
-    });
-    if (res.ok) {
-      setShowAdd(false);
-      setNewTask({ title: '', due_at: '' });
-      fetchTasks();
+    try {
+      const res = await fetch('http://localhost:8080/api/v1/tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          lead_id: leadId,
+          title: newTask.title,
+          description: '',
+          due_at: newTask.due_at || new Date().toISOString(),
+          status: 'pending'
+        })
+      });
+      if (res.ok) {
+        setShowAdd(false);
+        setNewTask({ title: '', due_at: '' });
+        fetchTasks();
+      }
+    } catch (e) {
+      console.error(e);
     }
   };
 

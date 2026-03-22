@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -11,17 +12,35 @@ import (
 )
 
 func GetTasks(c *gin.Context) {
-	agentID := c.Query("agent_id")
-	query := "SELECT id, lead_id, property_id, agent_id, title, description, due_at, status, created_at FROM tasks"
-	
-	filter := ""
+	leadID := c.Query("lead_id")
+	propertyID := c.Query("property_id")
+	role, _ := c.Get("userRole")
+	userID, _ := c.Get("userID")
+
+	query := "SELECT id, lead_id, property_id, agent_id, title, description, due_at, status, created_at FROM tasks WHERE 1=1"
 	args := []interface{}{}
-	if agentID != "" {
-		filter = " WHERE agent_id = $1"
-		args = append(args, agentID)
+	argIdx := 1
+
+	if role.(string) == "agent" {
+		uid := int(userID.(float64))
+		query += fmt.Sprintf(" AND agent_id = $%d", argIdx)
+		args = append(args, uid)
+		argIdx++
 	}
 
-	rows, err := repository.DB.Query(context.Background(), query+filter+" ORDER BY due_at ASC", args...)
+	if leadID != "" {
+		query += fmt.Sprintf(" AND lead_id = $%d", argIdx)
+		args = append(args, leadID)
+		argIdx++
+	}
+	if propertyID != "" {
+		query += fmt.Sprintf(" AND property_id = $%d", argIdx)
+		args = append(args, propertyID)
+		argIdx++
+	}
+	query += " ORDER BY due_at ASC"
+
+	rows, err := repository.DB.Query(context.Background(), query, args...)
 	if err != nil {
 		log.Println("Error querying tasks:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
@@ -49,6 +68,9 @@ func CreateTask(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	userID, _ := c.Get("userID")
+	t.AgentID = int(userID.(float64))
 
 	err := repository.DB.QueryRow(context.Background(),
 		"INSERT INTO tasks (lead_id, property_id, agent_id, title, description, due_at, status) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",

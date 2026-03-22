@@ -11,7 +11,20 @@ import (
 )
 
 func GetLeads(c *gin.Context) {
-	rows, err := repository.DB.Query(context.Background(), "SELECT id, name, phone, email, status, assigned_to, created_at FROM leads ORDER BY created_at DESC")
+	role, _ := c.Get("userRole")
+	userID, _ := c.Get("userID")
+
+	query := "SELECT id, name, phone, email, status, assigned_to, custom_fields, created_at FROM leads"
+	args := []interface{}{}
+
+	if role.(string) == "agent" {
+		uid := int(userID.(float64))
+		query += " WHERE assigned_to = $1"
+		args = append(args, uid)
+	}
+	query += " ORDER BY created_at DESC"
+
+	rows, err := repository.DB.Query(context.Background(), query, args...)
 	if err != nil {
 		log.Println("Error querying leads:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
@@ -22,7 +35,7 @@ func GetLeads(c *gin.Context) {
 	var leads []models.Lead
 	for rows.Next() {
 		var l models.Lead
-		err := rows.Scan(&l.ID, &l.Name, &l.Phone, &l.Email, &l.Status, &l.AssignedTo, &l.CreatedAt)
+		err := rows.Scan(&l.ID, &l.Name, &l.Phone, &l.Email, &l.Status, &l.AssignedTo, &l.CustomFields, &l.CreatedAt)
 		if err != nil {
 			log.Println("Error scanning lead:", err)
 			continue
@@ -42,10 +55,21 @@ func CreateLead(c *gin.Context) {
 		return
 	}
 
+	userID, _ := c.Get("userID")
+	currentUID := int(userID.(float64))
+
+	if req.AssignedTo == nil {
+		req.AssignedTo = &currentUID
+	}
+
+	if req.CustomFields == nil {
+		req.CustomFields = make(map[string]interface{})
+	}
+
 	var newID int
 	err := repository.DB.QueryRow(context.Background(),
-		"INSERT INTO leads (name, phone, email, status, assigned_to) VALUES ($1, $2, $3, $4, $5) RETURNING id",
-		req.Name, req.Phone, req.Email, req.Status, req.AssignedTo).Scan(&newID)
+		"INSERT INTO leads (name, phone, email, status, assigned_to, custom_fields) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
+		req.Name, req.Phone, req.Email, req.Status, req.AssignedTo, req.CustomFields).Scan(&newID)
 
 	if err != nil {
 		log.Println("Failed to create lead:", err)

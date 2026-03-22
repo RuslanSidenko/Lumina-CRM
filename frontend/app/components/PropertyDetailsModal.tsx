@@ -78,9 +78,20 @@ export default function PropertyDetailsModal({ property, onClose }: PropertyDeta
             </div>
 
             <div className="mt-auto pt-6 flex gap-3">
-               <button className="btn-primary flex-1 py-3 text-sm">Contact Agent</button>
+               <a 
+                href={`mailto:agent@example.com?subject=Inquiry: ${property.title}`} 
+                className="btn-primary flex-1 py-3 text-sm text-center"
+               >
+                 Contact Agent
+               </a>
                <button className="flex-1 border border-dark-border text-white text-sm hover:bg-white/5 transition-colors py-3 shadow-lg">Schedule Viewing</button>
             </div>
+            {property.agent_id && (
+              <div className="flex justify-between items-center text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-4">
+                 <span>Assigned Agent</span>
+                 <span>Agent ID: #{property.agent_id}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>

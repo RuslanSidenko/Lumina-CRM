@@ -130,7 +130,21 @@ func SeedDatabase() {
 		status VARCHAR(30) NOT NULL,
 		close_date TIMESTAMP,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-	);`
+	);
+	
+	CREATE TABLE IF NOT EXISTS custom_field_definitions (
+		id SERIAL PRIMARY KEY,
+		entity_type VARCHAR(20) NOT NULL,
+		label VARCHAR(100) NOT NULL,
+		field_type VARCHAR(20) NOT NULL,
+		options TEXT[] DEFAULT '{}',
+		is_required BOOLEAN DEFAULT FALSE,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);
+
+	ALTER TABLE leads ADD COLUMN IF NOT EXISTS custom_fields JSONB DEFAULT '{}';
+	ALTER TABLE properties ADD COLUMN IF NOT EXISTS custom_fields JSONB DEFAULT '{}';
+	`
 	
 	_, err := DB.Exec(context.Background(), schema)
 	if err != nil {
@@ -141,17 +155,19 @@ func SeedDatabase() {
 	log.Println("Ensuring test users exist with password: 'password'...")
 	hash, _ := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.DefaultCost)
 	
-	_, _ = DB.Exec(context.Background(), "DELETE FROM users WHERE email IN ('admin@example.com', 'agent@example.com')")
-	
-	_, err = DB.Exec(context.Background(), 
-		"INSERT INTO users (name, email, password_hash, role) VALUES ($1, $2, $3, $4), ($5, $6, $7, $8)",
+	seedQuery := `
+		INSERT INTO users (name, email, password_hash, role) 
+		VALUES ($1, $2, $3, $4), ($5, $6, $7, $8)
+		ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, role = EXCLUDED.role
+	`
+	_, err = DB.Exec(context.Background(), seedQuery,
 		"Admin User", "admin@example.com", string(hash), "admin",
 		"Agent User", "agent@example.com", string(hash), "agent",
 	)
 	if err != nil {
 		log.Printf("Error seeding users: %v", err)
 	} else {
-		log.Println("Admin and Agent users updated successfully.")
+		log.Println("Admin and Agent users seeded successfully.")
 	}
 }
 

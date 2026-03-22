@@ -12,14 +12,25 @@ import (
 
 func GetInteractions(c *gin.Context) {
 	leadID := c.Query("lead_id")
-	query := "SELECT id, lead_id, agent_id, type, content, created_at FROM interactions"
-	
-	var args []interface{}
-	if leadID != "" {
-		query += " WHERE lead_id = $1"
-		args = append(args, leadID)
+	role, _ := c.Get("userRole")
+	userID, _ := c.Get("userID")
+
+	if leadID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "lead_id is required"})
+		return
 	}
-	query += " ORDER BY created_at DESC"
+
+	query := "SELECT i.id, i.lead_id, i.agent_id, i.type, i.content, i.created_at FROM interactions i"
+	args := []interface{}{leadID}
+
+	if role.(string) == "agent" {
+		uid := int(userID.(float64))
+		query += " JOIN leads l ON i.lead_id = l.id WHERE i.lead_id = $1 AND l.assigned_to = $2"
+		args = append(args, uid)
+	} else {
+		query += " WHERE i.lead_id = $1"
+	}
+	query += " ORDER BY i.created_at DESC"
 
 	rows, err := repository.DB.Query(context.Background(), query, args...)
 	if err != nil {
@@ -52,13 +63,17 @@ func CreateInteraction(c *gin.Context) {
 		return
 	}
 
+	userID, _ := c.Get("userID")
+	// Cast float64 to int if necessary
+	i.AgentID = int(userID.(float64))
+
 	err := repository.DB.QueryRow(context.Background(),
 		"INSERT INTO interactions (lead_id, agent_id, type, content) VALUES ($1, $2, $3, $4) RETURNING id",
 		i.LeadID, i.AgentID, i.Type, i.Content).Scan(&i.ID)
 
 	if err != nil {
-		log.Println("Create interaction error:", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create interaction"})
+		log.Printf("Create interaction error: %v (LeadID: %d, AgentID: %d)", err, i.LeadID, i.AgentID)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create interaction: " + err.Error()})
 		return
 	}
 	c.JSON(http.StatusCreated, i)

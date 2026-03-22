@@ -15,37 +15,46 @@ export default function InteractionLog({ leadId, token }: InteractionLogProps) {
 
   useEffect(() => {
     fetchInteractions();
-  }, [leadId]);
+  }, [leadId, token]);
 
   const fetchInteractions = async () => {
-    const res = await fetch(`http://localhost:8080/api/v1/interactions?lead_id=${leadId}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if (res.ok) {
-      setInteractions(await res.ok ? await res.json() : []);
+    try {
+      const res = await fetch(`http://localhost:8080/api/v1/interactions?lead_id=${leadId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setInteractions(data);
+      }
+    } catch (e) {
+      console.error(e);
     }
   };
 
   const submitInteraction = async () => {
     if (!newInteraction.content) return;
     setLoading(true);
-    const res = await fetch('http://localhost:8080/api/v1/interactions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        lead_id: leadId,
-        agent_id: 1, // Placeholder for current user ID
-        type: newInteraction.type,
-        content: newInteraction.content
-      })
-    });
-    setLoading(false);
-    if (res.ok) {
-      setNewInteraction({ ...newInteraction, content: '' });
-      fetchInteractions();
+    try {
+      const res = await fetch('http://localhost:8080/api/v1/interactions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          lead_id: leadId,
+          type: newInteraction.type,
+          content: newInteraction.content
+        })
+      });
+      setLoading(false);
+      if (res.ok) {
+        setNewInteraction({ ...newInteraction, content: '' });
+        fetchInteractions();
+      }
+    } catch (e) {
+      console.error(e);
+      setLoading(false);
     }
   };
 

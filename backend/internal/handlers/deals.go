@@ -11,7 +11,20 @@ import (
 )
 
 func GetDeals(c *gin.Context) {
-	rows, err := repository.DB.Query(context.Background(), "SELECT id, lead_id, property_id, agent_id, price, status, close_date, created_at FROM deals ORDER BY created_at DESC")
+	role, _ := c.Get("userRole")
+	userID, _ := c.Get("userID")
+
+	query := "SELECT id, lead_id, property_id, agent_id, price, status, close_date, created_at FROM deals"
+	args := []interface{}{}
+
+	if role.(string) == "agent" {
+		uid := int(userID.(float64))
+		query += " WHERE agent_id = $1"
+		args = append(args, uid)
+	}
+	query += " ORDER BY created_at DESC"
+
+	rows, err := repository.DB.Query(context.Background(), query, args...)
 	if err != nil {
 		log.Println("Error querying deals:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
@@ -39,6 +52,9 @@ func CreateDeal(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	userID, _ := c.Get("userID")
+	d.AgentID = int(userID.(float64))
 
 	err := repository.DB.QueryRow(context.Background(),
 		"INSERT INTO deals (lead_id, property_id, agent_id, price, status, close_date) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",

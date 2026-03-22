@@ -11,7 +11,20 @@ import (
 )
 
 func GetProperties(c *gin.Context) {
-	rows, err := repository.DB.Query(context.Background(), "SELECT id, title, address, description, price, bedrooms, bathrooms, area, status, agent_id, images, created_at FROM properties ORDER BY created_at DESC")
+	role, _ := c.Get("userRole")
+	userID, _ := c.Get("userID")
+
+	query := "SELECT id, title, address, description, price, bedrooms, bathrooms, area, status, agent_id, images, custom_fields, created_at FROM properties"
+	args := []interface{}{}
+
+	if role.(string) == "agent" {
+		uid := int(userID.(float64))
+		query += " WHERE agent_id = $1"
+		args = append(args, uid)
+	}
+	query += " ORDER BY created_at DESC"
+
+	rows, err := repository.DB.Query(context.Background(), query, args...)
 	if err != nil {
 		log.Println("Error querying properties:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
@@ -22,7 +35,7 @@ func GetProperties(c *gin.Context) {
 	var properties []models.Property
 	for rows.Next() {
 		var p models.Property
-		err := rows.Scan(&p.ID, &p.Title, &p.Address, &p.Description, &p.Price, &p.Bedrooms, &p.Bathrooms, &p.Area, &p.Status, &p.AgentID, &p.Images, &p.CreatedAt)
+		err := rows.Scan(&p.ID, &p.Title, &p.Address, &p.Description, &p.Price, &p.Bedrooms, &p.Bathrooms, &p.Area, &p.Status, &p.AgentID, &p.Images, &p.CustomFields, &p.CreatedAt)
 		if err != nil {
 			log.Println("Error scanning property:", err)
 			continue
@@ -44,9 +57,16 @@ func CreateProperty(c *gin.Context) {
 		return
 	}
 
+	userID, _ := c.Get("userID")
+	p.AgentID = int(userID.(float64))
+
+	if p.CustomFields == nil {
+		p.CustomFields = make(map[string]interface{})
+	}
+
 	err := repository.DB.QueryRow(context.Background(),
-		"INSERT INTO properties (title, address, description, price, bedrooms, bathrooms, area, status, agent_id, images) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id",
-		p.Title, p.Address, p.Description, p.Price, p.Bedrooms, p.Bathrooms, p.Area, p.Status, p.AgentID, p.Images).Scan(&p.ID)
+		"INSERT INTO properties (title, address, description, price, bedrooms, bathrooms, area, status, agent_id, images, custom_fields) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id",
+		p.Title, p.Address, p.Description, p.Price, p.Bedrooms, p.Bathrooms, p.Area, p.Status, p.AgentID, p.Images, p.CustomFields).Scan(&p.ID)
 
 	if err != nil {
 		log.Println("Create property error:", err)
