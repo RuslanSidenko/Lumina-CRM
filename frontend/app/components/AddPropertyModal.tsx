@@ -73,19 +73,19 @@ export default function AddPropertyModal({ token, onClose, onSuccess }: AddPrope
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
-              <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Property Title</label>
+              <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Property Title <span className="text-red-500">*</span></label>
               <input type="text" required className="input-field" value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="Modern Villa with Pool" />
             </div>
             <div className="md:col-span-2">
-              <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Full Address</label>
+              <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Full Address <span className="text-red-500">*</span></label>
               <input type="text" required className="input-field" value={form.address} onChange={e => setForm({...form, address: e.target.value})} placeholder="123 Luxury St, Beverly Hills" />
             </div>
             <div>
-              <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Price ($)</label>
+              <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Price ($) <span className="text-red-500">*</span></label>
               <input type="number" required className="input-field" value={form.price} onChange={e => setForm({...form, price: parseInt(e.target.value)})} />
             </div>
             <div>
-              <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Area (Sq Ft)</label>
+              <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Area (Sq Ft) <span className="text-red-500">*</span></label>
               <input type="number" required className="input-field" value={form.area} onChange={e => setForm({...form, area: parseInt(e.target.value)})} />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -109,7 +109,9 @@ export default function AddPropertyModal({ token, onClose, onSuccess }: AddPrope
 
             {customFieldDefs.map(field => (
               <div key={field.id} className="animate-in fade-in slide-in-from-top-1">
-                <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">{field.label}</label>
+                <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">
+                  {field.label} {field.is_required && <span className="text-red-500">*</span>}
+                </label>
                 {field.field_type === 'select' ? (
                   <select 
                     className="input-field"

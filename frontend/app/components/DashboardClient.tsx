@@ -219,13 +219,16 @@ export default function DashboardClient({ initialLeads, initialProperties, token
           lead={selectedLead} 
           token={token} 
           onClose={() => setSelectedLead(null)} 
+          onUpdate={refreshData}
         />
       )}
 
       {selectedProperty && (
         <PropertyDetailsModal 
           property={selectedProperty} 
+          token={token}
           onClose={() => setSelectedProperty(null)} 
+          onUpdate={refreshData}
         />
       )}
     </div>

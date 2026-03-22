@@ -41,8 +41,10 @@ func main() {
 			// Authorized for Agent + Admin
 			protected.GET("/leads", handlers.GetLeads)
 			protected.POST("/leads", handlers.CreateLead)
+			protected.PUT("/leads/:id", handlers.UpdateLead)
 			protected.GET("/properties", handlers.GetProperties)
 			protected.POST("/properties", handlers.CreateProperty)
+			protected.PUT("/properties/:id", handlers.UpdateProperty)
 
 			// Interaction Logs
 			protected.GET("/interactions", handlers.GetInteractions)

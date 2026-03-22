@@ -75,3 +75,23 @@ func CreateProperty(c *gin.Context) {
 	}
 	c.JSON(http.StatusCreated, p)
 }
+
+func UpdateProperty(c *gin.Context) {
+	id := c.Param("id")
+	var p models.Property
+	if err := c.ShouldBindJSON(&p); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	_, err := repository.DB.Exec(context.Background(),
+		"UPDATE properties SET title=$1, address=$2, description=$3, price=$4, bedrooms=$5, bathrooms=$6, area=$7, status=$8, images=$9, custom_fields=$10 WHERE id=$11",
+		p.Title, p.Address, p.Description, p.Price, p.Bedrooms, p.Bathrooms, p.Area, p.Status, p.Images, p.CustomFields, id)
+
+	if err != nil {
+		log.Println("Update property error:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Property updated successfully"})
+}

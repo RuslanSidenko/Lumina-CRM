@@ -12,6 +12,7 @@ export interface Lead {
   phone: string;
   email: string;
   status: string;
+  custom_fields?: Record<string, any>;
   created_at?: string;
 }
 
@@ -27,6 +28,7 @@ export interface Property {
   status: string;
   agent_id?: number;
   images: string[];
+  custom_fields?: Record<string, any>;
   created_at?: string;
 }
 export interface Interaction {

@@ -65,7 +65,7 @@ export default function AddLeadModal({ token, onClose, onSuccess }: AddLeadModal
         
         <form onSubmit={submitNewLead} className="flex flex-col gap-5">
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-slate-400 ml-1">Full Name</label>
+            <label className="text-xs font-medium text-slate-400 ml-1">Full Name <span className="text-red-500">*</span></label>
             <input 
               className="input-field" 
               type="text" 
@@ -77,7 +77,7 @@ export default function AddLeadModal({ token, onClose, onSuccess }: AddLeadModal
           </div>
           
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-slate-400 ml-1">Phone Number</label>
+            <label className="text-xs font-medium text-slate-400 ml-1">Phone Number <span className="text-red-500">*</span></label>
             <input 
               className="input-field" 
               type="tel" 
@@ -94,7 +94,6 @@ export default function AddLeadModal({ token, onClose, onSuccess }: AddLeadModal
               className="input-field" 
               type="email" 
               placeholder="john@example.com" 
-              required 
               value={newLead.email} 
               onChange={e => setNewLead({...newLead, email: e.target.value})} 
             />
@@ -102,7 +101,9 @@ export default function AddLeadModal({ token, onClose, onSuccess }: AddLeadModal
 
           {customFieldDefs.map(field => (
             <div key={field.id} className="flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-1">
-              <label className="text-xs font-medium text-slate-400 ml-1">{field.label}</label>
+              <label className="text-xs font-medium text-slate-400 ml-1">
+                {field.label} {field.is_required && <span className="text-red-500">*</span>}
+              </label>
               {field.field_type === 'select' ? (
                 <select 
                   className="input-field"

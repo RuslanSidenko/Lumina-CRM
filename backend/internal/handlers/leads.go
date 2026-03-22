@@ -79,6 +79,26 @@ func CreateLead(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "Lead created successfully", "id": newID})
 }
 
+func UpdateLead(c *gin.Context) {
+	id := c.Param("id")
+	var l models.Lead
+	if err := c.ShouldBindJSON(&l); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	_, err := repository.DB.Exec(context.Background(),
+		"UPDATE leads SET name=$1, phone=$2, email=$3, status=$4, assigned_to=$5, custom_fields=$6 WHERE id=$7",
+		l.Name, l.Phone, l.Email, l.Status, l.AssignedTo, l.CustomFields, id)
+
+	if err != nil {
+		log.Println("Update lead error:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Lead updated successfully"})
+}
+
 func DeleteLead(c *gin.Context) {
 	id := c.Param("id")
 	

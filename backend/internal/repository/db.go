@@ -141,14 +141,60 @@ func SeedDatabase() {
 		is_required BOOLEAN DEFAULT FALSE,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);
-
-	ALTER TABLE leads ADD COLUMN IF NOT EXISTS custom_fields JSONB DEFAULT '{}';
-	ALTER TABLE properties ADD COLUMN IF NOT EXISTS custom_fields JSONB DEFAULT '{}';
 	`
 	
-	_, err := DB.Exec(context.Background(), schema)
+	var err error
+	_, err = DB.Exec(context.Background(), schema)
 	if err != nil {
 		log.Printf("Error creating schema: %v", err)
+	}
+	
+	// Migrations for existing tables
+	if _, err := DB.Exec(context.Background(), "ALTER TABLE leads ADD COLUMN IF NOT EXISTS custom_fields JSONB DEFAULT '{}'"); err != nil {
+		log.Printf("Migration error (leads custom_fields): %v", err)
+	}
+	if _, err := DB.Exec(context.Background(), "ALTER TABLE properties ADD COLUMN IF NOT EXISTS address VARCHAR(255)"); err != nil {
+		log.Printf("Migration error (properties address): %v", err)
+	}
+	if _, err := DB.Exec(context.Background(), "ALTER TABLE properties ADD COLUMN IF NOT EXISTS custom_fields JSONB DEFAULT '{}'"); err != nil {
+		log.Printf("Migration error (properties custom_fields): %v", err)
+	}
+	
+	// Add unique constraint only if it doesn't exist
+	_, err = DB.Exec(context.Background(), `
+		DO $$ 
+		BEGIN 
+			IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'unique_label_per_entity') THEN
+				ALTER TABLE custom_field_definitions ADD CONSTRAINT unique_label_per_entity UNIQUE (entity_type, label);
+			END IF;
+		END $$;
+	`)
+	if err != nil {
+		log.Printf("Error applying constraints: %v", err)
+	}
+
+	// Seed Essential Custom Fields for Leads
+	log.Println("Seeding essential custom fields...")
+	fieldsToSeed := []struct {
+		EntityType string
+		Label      string
+		FieldType  string
+		Options    []string
+	}{
+		{"lead", "Budget", "number", nil},
+		{"lead", "Intended Date", "text", nil},
+		{"lead", "Decision Maker", "select", []string{"Yes", "No"}},
+		{"lead", "First Deposit", "number", nil},
+		{"lead", "Condo Interest", "text", nil},
+		{"lead", "Bedrooms", "number", nil},
+		{"lead", "Goal", "select", []string{"Investment", "Living"}},
+		{"lead", "Country", "text", nil},
+	}
+
+	for _, f := range fieldsToSeed {
+		_, _ = DB.Exec(context.Background(), 
+			"INSERT INTO custom_field_definitions (entity_type, label, field_type, options) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING",
+			f.EntityType, f.Label, f.FieldType, f.Options)
 	}
 
 	// Ensure local users have correct passwords for testing
