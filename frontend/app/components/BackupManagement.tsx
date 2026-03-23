@@ -9,9 +9,10 @@ interface BackupManagementProps {
 
 export default function BackupManagement({ token }: BackupManagementProps) {
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState({ s3_active: false, daily_enabled: false, last_status: '', last_time: '' });
+  const [status, setStatus] = useState({ s3_active: false, daily_enabled: false, frequency: '24h', last_status: '', last_time: '' });
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchStatus();
@@ -27,6 +28,27 @@ export default function BackupManagement({ token }: BackupManagementProps) {
       }
     } catch (e) {
       console.error('Failed to fetch backup status', e);
+    }
+  };
+
+  const updateBackupSetting = async (key: string, value: string) => {
+    setSaving(true);
+    try {
+       const res = await fetch(`${API_BASE}/api/v1/automation/settings`, {
+          method: 'PUT',
+          headers: { 
+             'Content-Type': 'application/json',
+             Authorization: `Bearer ${token}` 
+          },
+          body: JSON.stringify({ key, value })
+       });
+       if (res.ok) {
+          fetchStatus();
+          setMessage('Backup settings updated!');
+          setTimeout(() => setMessage(''), 3000);
+       }
+    } finally {
+       setSaving(false);
     }
   };
 
@@ -135,13 +157,42 @@ export default function BackupManagement({ token }: BackupManagementProps) {
                  </span>
               </div>
            </div>
-           <div className="p-3 rounded-lg bg-white/5 flex items-center justify-between">
-              <span className="text-xs text-slate-400">Daily Schedule</span>
-              <div className="flex items-center gap-2">
-                 <div className={`w-2 h-2 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)] ${status.daily_enabled ? 'bg-blue-500' : 'bg-n-500'}`} />
-                 <span className={`text-[10px] font-bold uppercase underline ${status.daily_enabled ? 'text-slate-300 decoration-blue-500/30' : 'text-n-500 decoration-n-500/30'}`}>
-                   {status.daily_enabled ? 'Enabled' : 'Disabled'}
-                 </span>
+            <div className="p-3 rounded-lg bg-white/5 flex items-center justify-between border border-white/5">
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold text-slate-500 uppercase">Automation</span>
+                <div className="flex items-center gap-2">
+                   <div className={`w-2 h-2 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)] ${status.daily_enabled ? 'bg-blue-500' : 'bg-n-500'}`} />
+                   <span className={`text-xs font-bold ${status.daily_enabled ? 'text-slate-300' : 'text-n-500'}`}>
+                     {status.daily_enabled ? 'Enabled' : 'Disabled'}
+                   </span>
+                </div>
+              </div>
+              <button 
+                onClick={() => updateBackupSetting('backup_enabled', status.daily_enabled ? 'false' : 'true')}
+                disabled={saving}
+                className={`relative w-10 h-5 transition-colors rounded-full ${status.daily_enabled ? 'bg-blue-500' : 'bg-n-600'}`}
+              >
+                <div className={`absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-transform ${status.daily_enabled ? 'translate-x-5' : ''}`} />
+              </button>
+           </div>
+           
+           <div className="p-3 rounded-lg bg-white/5 border border-white/5 space-y-2">
+              <span className="text-[10px] font-bold text-slate-500 uppercase">Frequency</span>
+              <div className="flex gap-2">
+                 {['1h', '6h', '12h', '24h'].map(f => (
+                    <button
+                      key={f}
+                      onClick={() => updateBackupSetting('backup_frequency', f)}
+                      disabled={saving}
+                      className={`flex-1 py-1 rounded-md text-[10px] font-bold transition-all ${
+                        (status.frequency || '24h') === f 
+                          ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' 
+                          : 'bg-white/5 text-n-400 border border-transparent'
+                      }`}
+                    >
+                      {f}
+                    </button>
+                 ))}
               </div>
            </div>
         </div>

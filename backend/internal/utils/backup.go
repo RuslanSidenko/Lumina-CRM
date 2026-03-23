@@ -129,14 +129,48 @@ func CleanUp(filePath string) {
 	_ = os.Remove(filePath)
 }
 
-// StartAutoBackup initiates the background daily backup routine
+// StartAutoBackup initiates the background backup routine with dynamic configuration
 func StartAutoBackup() {
 	go func() {
 		for {
-			log.Println("Next daily backup in 24 hours...")
-			time.Sleep(24 * time.Hour)
+			// 1. Polling Interval (check settings every minute)
+			time.Sleep(1 * time.Minute)
 
-			log.Println("Starting automated daily backup...")
+			// 2. Fetch Settings
+			var enabled, freq string
+			_ = repository.DB.QueryRow(context.Background(), "SELECT value FROM automation_settings WHERE key = 'backup_enabled'").Scan(&enabled)
+			_ = repository.DB.QueryRow(context.Background(), "SELECT value FROM automation_settings WHERE key = 'backup_frequency'").Scan(&freq)
+
+			if enabled != "true" {
+				continue
+			}
+
+			// 3. Determine Interval
+			interval := 24 * time.Hour // Default to Daily
+			switch freq {
+			case "1h":
+				interval = 1 * time.Hour
+			case "6h":
+				interval = 6 * time.Hour
+			case "12h":
+				interval = 12 * time.Hour
+			}
+
+			// 4. Check if it's time (based on last_backup_time)
+			var lastTimeStr string
+			_ = repository.DB.QueryRow(context.Background(), "SELECT value FROM automation_settings WHERE key = 'last_backup_time'").Scan(&lastTimeStr)
+
+			if lastTimeStr != "" {
+				// We store it as timestamp | Error or just timestamp
+				parts := strings.Split(lastTimeStr, " | ")
+				lastTime, err := time.Parse(time.RFC3339, parts[0])
+				if err == nil && time.Since(lastTime) < interval {
+					continue // Not time yet
+				}
+			}
+
+			// 5. Execute Backup
+			log.Printf("Starting automated %s backup...", freq)
 			path, err := RunBackup()
 			if err != nil {
 				log.Printf("Auto-backup failed (DUMP): %v", err)

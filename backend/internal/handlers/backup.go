@@ -39,13 +39,16 @@ func GetBackupStatus(c *gin.Context) {
 
 	isS3Active := bucket != "" && accessKey != "" && secretKey != ""
 
-	var lastStatus, lastTime string
+	var lastStatus, lastTime, enabled, freq string
 	_ = repository.DB.QueryRow(context.Background(), "SELECT value FROM automation_settings WHERE key = 'last_backup_status'").Scan(&lastStatus)
 	_ = repository.DB.QueryRow(context.Background(), "SELECT value FROM automation_settings WHERE key = 'last_backup_time'").Scan(&lastTime)
+	_ = repository.DB.QueryRow(context.Background(), "SELECT value FROM automation_settings WHERE key = 'backup_enabled'").Scan(&enabled)
+	_ = repository.DB.QueryRow(context.Background(), "SELECT value FROM automation_settings WHERE key = 'backup_frequency'").Scan(&freq)
 
 	c.JSON(http.StatusOK, gin.H{
 		"s3_active":      isS3Active,
-		"daily_enabled":  true,
+		"daily_enabled":  enabled == "true",
+		"frequency":      freq,
 		"last_status":    lastStatus,
 		"last_time":      lastTime,
 	})
