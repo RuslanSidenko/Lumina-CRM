@@ -83,12 +83,8 @@ func CreateLead(c *gin.Context) {
 	}
 
 	userID, _ := c.Get("userID")
-	currentUID := int(userID.(float64))
-
-	if req.AssignedTo == nil {
-		req.AssignedTo = &currentUID
-	}
-
+	_ = userID // Keep variable access for future-proofing if needed, but remove default assignment
+	
 	if req.Source == "" {
 		req.Source = "manual"
 	}

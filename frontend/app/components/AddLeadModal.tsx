@@ -8,8 +8,9 @@ interface AddLeadModalProps {
 }
 
 export default function AddLeadModal({ token, onClose, onSuccess }: AddLeadModalProps) {
-  const [newLead, setNewLead] = useState<any>({ name: '', phone: '', email: '', status: 'New', custom_fields: {} });
+  const [newLead, setNewLead] = useState<any>({ name: '', phone: '', email: '', status: 'New', assigned_to: null, custom_fields: {} });
   const [customFieldDefs, setCustomFieldDefs] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -18,6 +19,13 @@ export default function AddLeadModal({ token, onClose, onSuccess }: AddLeadModal
     })
       .then(res => res.json())
       .then(data => setCustomFieldDefs(Array.isArray(data) ? data : []));
+
+    fetch(`${API_BASE}/api/v1/users`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => setUsers(Array.isArray(data) ? data : []))
+      .catch(() => setUsers([]));
   }, []);
 
   const submitNewLead = async (e: FormEvent) => {
@@ -98,6 +106,20 @@ export default function AddLeadModal({ token, onClose, onSuccess }: AddLeadModal
               value={newLead.email}
               onChange={e => setNewLead({ ...newLead, email: e.target.value })}
             />
+          </div>
+          
+          <div className="flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-1">
+            <label className="text-xs font-medium text-slate-400 ml-1">Assigned To</label>
+            <select
+                className="input-field"
+                value={newLead.assigned_to || ""}
+                onChange={e => setNewLead({ ...newLead, assigned_to: e.target.value ? parseInt(e.target.value) : null })}
+            >
+                <option value="">Unassigned</option>
+                {users.map(u => (
+                    <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
+                ))}
+            </select>
           </div>
 
           {customFieldDefs.map(field => (

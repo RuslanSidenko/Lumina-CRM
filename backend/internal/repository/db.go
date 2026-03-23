@@ -236,7 +236,7 @@ func SeedDatabase() {
 		{"agent", "deals", true, false, true, true, false, false},
 		{"agent", "tasks", true, false, true, true, false, false},
 		{"agent", "interactions", true, false, true, true, false, false},
-		{"agent", "users", false, false, false, false, false, false},
+		{"agent", "users", true, true, false, false, false, false},
 	}
 
 	for _, p := range defaultPermissions {
