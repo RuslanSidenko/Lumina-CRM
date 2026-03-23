@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { API_BASE } from '../config';
 
 interface BackupManagementProps {
@@ -9,8 +9,26 @@ interface BackupManagementProps {
 
 export default function BackupManagement({ token }: BackupManagementProps) {
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState({ s3_active: false, daily_enabled: false, last_status: '', last_time: '' });
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetchStatus();
+  }, []);
+
+  const fetchStatus = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/backups/status`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setStatus(await res.json());
+      }
+    } catch (e) {
+      console.error('Failed to fetch backup status', e);
+    }
+  };
 
   const triggerBackup = async () => {
     setLoading(true);
@@ -111,18 +129,45 @@ export default function BackupManagement({ token }: BackupManagementProps) {
            <div className="p-3 rounded-lg bg-white/5 flex items-center justify-between">
               <span className="text-xs text-slate-400">S3 Storage</span>
               <div className="flex items-center gap-2">
-                 <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                 <span className="text-[10px] font-bold text-slate-300 uppercase underline decoration-emerald-500/30">Active</span>
+                 <div className={`w-2 h-2 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)] ${status.s3_active ? 'bg-emerald-500' : 'bg-n-500'}`} />
+                 <span className={`text-[10px] font-bold uppercase underline ${status.s3_active ? 'text-slate-300 decoration-emerald-500/30' : 'text-n-500 decoration-n-500/30'}`}>
+                    {status.s3_active ? 'Active' : 'Inactive'}
+                 </span>
               </div>
            </div>
            <div className="p-3 rounded-lg bg-white/5 flex items-center justify-between">
               <span className="text-xs text-slate-400">Daily Schedule</span>
               <div className="flex items-center gap-2">
-                 <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                 <span className="text-[10px] font-bold text-slate-300 uppercase underline decoration-blue-500/30">Enabled</span>
+                 <div className={`w-2 h-2 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)] ${status.daily_enabled ? 'bg-blue-500' : 'bg-n-500'}`} />
+                 <span className={`text-[10px] font-bold uppercase underline ${status.daily_enabled ? 'text-slate-300 decoration-blue-500/30' : 'text-n-500 decoration-n-500/30'}`}>
+                   {status.daily_enabled ? 'Enabled' : 'Disabled'}
+                 </span>
               </div>
            </div>
         </div>
+
+        {status.last_time && (
+          <div className="mt-4 p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${status.last_status === 'success' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`}>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  {status.last_status === 'success' ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  )}
+                </svg>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-n-400 uppercase tracking-widest">Last Cloud Sync</p>
+                <p className="text-xs text-n-50 font-medium">{new Date(status.last_time.split(' | ')[0]).toLocaleString()}</p>
+              </div>
+            </div>
+            <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${status.last_status === 'success' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
+              {status.last_status}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

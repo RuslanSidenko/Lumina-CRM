@@ -109,6 +109,7 @@ func main() {
 
 				// Backup Management
 				adminOnly.POST("/backups/trigger", handlers.TriggerBackup)
+				adminOnly.GET("/backups/status", handlers.GetBackupStatus)
 
 				// Automation Management
 				adminOnly.GET("/automation/settings", handlers.GetAutomationSettings)

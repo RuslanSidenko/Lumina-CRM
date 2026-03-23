@@ -167,6 +167,7 @@ export default function DashboardClient({ initialLeads, initialProperties, token
           {activeTab === 'Roles'    && role === 'admin' && <RoleManagement token={token} />}
           {activeTab === 'API'      && role === 'admin' && <APIKeyManagement token={token} />}
           {activeTab === 'Backups'  && role === 'admin' && <BackupManagement token={token} />}
+          {activeTab === 'Automation' && role === 'admin' && <AutomationManagement token={token} />}
           {activeTab === 'Settings' && <ChangePassword token={token} />}
         </main>
       </div>

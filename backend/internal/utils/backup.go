@@ -14,7 +14,23 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"real_estate_crm/internal/repository"
 )
+
+func UpdateBackupStatus(status string, err error) {
+	timestamp := time.Now().Format(time.RFC3339)
+	val := timestamp
+	if err != nil {
+		val = fmt.Sprintf("%s | Error: %v", timestamp, err)
+	}
+
+	_, _ = repository.DB.Exec(context.Background(), 
+		"INSERT INTO automation_settings (key, value) VALUES ('last_backup_status', $1) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value", 
+		status)
+	_, _ = repository.DB.Exec(context.Background(), 
+		"INSERT INTO automation_settings (key, value) VALUES ('last_backup_time', $1) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value", 
+		val)
+}
 
 // RunBackup generates a pg_dump and returns the filename
 func RunBackup() (string, error) {
@@ -112,12 +128,16 @@ func StartAutoBackup() {
 			path, err := RunBackup()
 			if err != nil {
 				log.Printf("Auto-backup failed (DUMP): %v", err)
+				UpdateBackupStatus("failed", err)
 				continue
 			}
 
 			err = UploadToS3(path)
 			if err != nil {
 				log.Printf("Auto-backup failed (UPLOAD): %v", err)
+				UpdateBackupStatus("failed", err)
+			} else {
+				UpdateBackupStatus("success", nil)
 			}
 			
 			CleanUp(path)
