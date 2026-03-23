@@ -187,6 +187,13 @@ func SeedDatabase() {
 		expires_at TIMESTAMP NOT NULL,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);
+	CREATE TABLE IF NOT EXISTS password_resets (
+		id SERIAL PRIMARY KEY,
+		email VARCHAR(100) UNIQUE NOT NULL,
+		token VARCHAR(64) UNIQUE NOT NULL,
+		expires_at TIMESTAMP NOT NULL,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);
 	`
 	
 	var err error

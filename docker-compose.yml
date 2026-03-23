@@ -26,6 +26,11 @@ services:
       - DATABASE_URL=${DATABASE_URL:-postgres://postgres:password@db:5432/crm_db?sslmode=disable}
       - PORT=${PORT:-8090}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
+      - SMTP_HOST=${SMTP_HOST:-smtp.example.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-user@example.com}
+      - SMTP_PASS=${SMTP_PASS:-password}
+      - SMTP_FROM=${SMTP_FROM:-noreply@example.com}
     depends_on:
       - db
 

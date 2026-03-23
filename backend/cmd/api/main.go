@@ -113,6 +113,10 @@ func main() {
 		// Public Invitation validation and fulfillment
 		api.GET("/invitations/:token", handlers.GetInvitation)
 		api.POST("/invitations/fulfill", handlers.FulfillInvitation)
+
+		// Password Reset
+		api.POST("/auth/forgot-password", handlers.ForgotPassword)
+		api.POST("/auth/reset-password", handlers.ResetPassword)
 	}
 
 	port := os.Getenv("PORT")
