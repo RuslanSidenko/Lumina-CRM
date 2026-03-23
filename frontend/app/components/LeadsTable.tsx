@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Lead } from '../types';
+import { API_BASE } from '../config';
 
 interface LeadsTableProps {
   leads: Lead[];
@@ -10,11 +11,11 @@ interface LeadsTableProps {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  New:       'badge-blue',
+  New: 'badge-blue',
   Contacted: 'badge-yellow',
   Qualified: 'badge-purple',
-  Active:    'badge-green',
-  Lost:      'badge-red',
+  Active: 'badge-green',
+  Lost: 'badge-red',
 };
 
 export default function LeadsTable({ leads, token, role, refreshData, onLeadClick }: LeadsTableProps) {
@@ -24,7 +25,7 @@ export default function LeadsTable({ leads, token, role, refreshData, onLeadClic
   const deleteLead = async (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!confirm('Delete this lead? This cannot be undone.')) return;
-    const res = await fetch(`http://localhost:8080/api/v1/leads/${id}`, {
+    const res = await fetch(`${API_BASE}/api/v1/leads/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },
     });

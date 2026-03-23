@@ -1,4 +1,5 @@
 import { useState, useEffect, FormEvent } from 'react';
+import { API_BASE } from '../config';
 
 interface AddLeadModalProps {
   token: string;
@@ -12,18 +13,18 @@ export default function AddLeadModal({ token, onClose, onSuccess }: AddLeadModal
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetch('http://localhost:8080/api/v1/custom-fields?entity_type=lead', {
+    fetch(`${API_BASE}/api/v1/custom-fields?entity_type=lead`, {
       headers: { Authorization: `Bearer ${token}` }
     })
-    .then(res => res.json())
-    .then(data => setCustomFieldDefs(Array.isArray(data) ? data : []));
+      .then(res => res.json())
+      .then(data => setCustomFieldDefs(Array.isArray(data) ? data : []));
   }, []);
 
   const submitNewLead = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
-    const res = await fetch('http://localhost:8080/api/v1/leads', {
+
+    const res = await fetch(`${API_BASE}/api/v1/leads`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -31,12 +32,12 @@ export default function AddLeadModal({ token, onClose, onSuccess }: AddLeadModal
       },
       body: JSON.stringify(newLead)
     });
-    
+
     setLoading(false);
     if (res.ok) {
       onSuccess();
     } else {
-      const errorData = await res.json().catch(()=>({}));
+      const errorData = await res.json().catch(() => ({}));
       alert("Failed to add lead. Error: " + errorData.error);
     }
   };
@@ -54,7 +55,7 @@ export default function AddLeadModal({ token, onClose, onSuccess }: AddLeadModal
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark-bg/80 backdrop-blur-sm transition-all duration-300">
       <div className="glass-panel w-full max-w-md p-8 relative flex flex-col gap-6 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <button 
+        <button
           onClick={onClose}
           className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
         >
@@ -62,40 +63,40 @@ export default function AddLeadModal({ token, onClose, onSuccess }: AddLeadModal
         </button>
 
         <h3 className="text-2xl font-bold tracking-tight">Add New Lead</h3>
-        
+
         <form onSubmit={submitNewLead} className="flex flex-col gap-5">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium text-slate-400 ml-1">Full Name <span className="text-red-500">*</span></label>
-            <input 
-              className="input-field" 
-              type="text" 
-              placeholder="John Doe" 
-              required 
-              value={newLead.name} 
-              onChange={e => setNewLead({...newLead, name: e.target.value})} 
+            <input
+              className="input-field"
+              type="text"
+              placeholder="John Doe"
+              required
+              value={newLead.name}
+              onChange={e => setNewLead({ ...newLead, name: e.target.value })}
             />
           </div>
-          
+
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium text-slate-400 ml-1">Phone Number <span className="text-red-500">*</span></label>
-            <input 
-              className="input-field" 
-              type="tel" 
-              placeholder="+1 555-0199" 
-              required 
-              value={newLead.phone} 
-              onChange={e => setNewLead({...newLead, phone: e.target.value})} 
+            <input
+              className="input-field"
+              type="tel"
+              placeholder="+1 555-0199"
+              required
+              value={newLead.phone}
+              onChange={e => setNewLead({ ...newLead, phone: e.target.value })}
             />
           </div>
-          
+
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium text-slate-400 ml-1">Email Address</label>
-            <input 
-              className="input-field" 
-              type="email" 
-              placeholder="john@example.com" 
-              value={newLead.email} 
-              onChange={e => setNewLead({...newLead, email: e.target.value})} 
+            <input
+              className="input-field"
+              type="email"
+              placeholder="john@example.com"
+              value={newLead.email}
+              onChange={e => setNewLead({ ...newLead, email: e.target.value })}
             />
           </div>
 
@@ -105,7 +106,7 @@ export default function AddLeadModal({ token, onClose, onSuccess }: AddLeadModal
                 {field.label} {field.is_required && <span className="text-red-500">*</span>}
               </label>
               {field.field_type === 'select' ? (
-                <select 
+                <select
                   className="input-field"
                   required={field.is_required}
                   onChange={e => handleCustomFieldChange(field.label, e.target.value)}
@@ -116,7 +117,7 @@ export default function AddLeadModal({ token, onClose, onSuccess }: AddLeadModal
                   ))}
                 </select>
               ) : (
-                <input 
+                <input
                   type={field.field_type === 'number' ? 'number' : 'text'}
                   className="input-field"
                   placeholder={`Enter ${field.label.toLowerCase()}`}
@@ -128,16 +129,16 @@ export default function AddLeadModal({ token, onClose, onSuccess }: AddLeadModal
           ))}
 
           <div className="flex justify-end gap-3 mt-4">
-            <button 
-              type="button" 
-              onClick={onClose} 
+            <button
+              type="button"
+              onClick={onClose}
               className="px-4 py-2 text-slate-400 hover:text-slate-200 font-medium transition-colors"
             >
               Cancel
             </button>
-            <button 
-              type="submit" 
-              className="btn-primary" 
+            <button
+              type="submit"
+              className="btn-primary"
               disabled={loading}
             >
               {loading ? "Saving..." : "Save Lead"}

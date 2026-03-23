@@ -21,8 +21,14 @@ func main() {
 	r := gin.Default()
 	r.SetTrustedProxies(nil)
 
+	allowedOrigin := os.Getenv("ALLOWED_ORIGIN")
+	origins := []string{"http://localhost:3000", "http://localhost:3001"}
+	if allowedOrigin != "" {
+		origins = append(origins, allowedOrigin)
+	}
+
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:3001"},
+		AllowOrigins:     origins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},

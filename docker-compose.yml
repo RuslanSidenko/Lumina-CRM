@@ -39,6 +39,7 @@ services:
       - "${FRONTEND_PORT:-3001}:${FRONTEND_PORT:-3001}"
     environment:
       - PORT=${FRONTEND_PORT:-3001}
+      - BACKEND_URL=http://backend:8090
     depends_on:
       - backend
 

@@ -1,10 +1,11 @@
 'use server'
 
 import { cookies } from 'next/headers'
+import { API_BASE } from '../config'
 
 export async function loginAction(username: string, password: string) {
   try {
-    const res = await fetch('http://localhost:8080/api/v1/auth/login', {
+    const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
@@ -31,7 +32,7 @@ export async function logoutAction() {
 
 export async function changePasswordAction(token: string, currentPassword: string, newPassword: string) {
   try {
-    const res = await fetch('http://localhost:8080/api/v1/auth/change-password', {
+    const res = await fetch(`${API_BASE}/api/v1/auth/change-password`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

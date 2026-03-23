@@ -18,6 +18,7 @@ import APIKeyManagement from './APIKeyManagement';
 import ChangePassword from './ChangePassword';
 
 import { Lead, Property } from '../types';
+import { API_BASE } from '../config';
 
 interface DashboardClientProps {
   initialLeads: Lead[];
@@ -45,15 +46,15 @@ export default function DashboardClient({ initialLeads, initialProperties, token
     try {
       const headers = { Authorization: `Bearer ${token}` };
       const [resLeads, resProps, resAnalytics] = await Promise.all([
-        fetch('http://localhost:8080/api/v1/leads', { headers }),
-        fetch('http://localhost:8080/api/v1/properties', { headers }),
-        fetch('http://localhost:8080/api/v1/analytics', { headers }),
+        fetch(`${API_BASE}/api/v1/leads`, { headers }),
+        fetch(`${API_BASE}/api/v1/properties`, { headers }),
+        fetch(`${API_BASE}/api/v1/analytics`, { headers }),
       ]);
       if (resLeads.ok) setLeads(await resLeads.json());
       if (resProps.ok) setProperties(await resProps.json());
       if (resAnalytics.ok) setAnalytics(await resAnalytics.json());
 
-      const resPerms = await fetch('http://localhost:8080/api/v1/roles', { headers }); // We might need a better endpoint for 'my permissions'
+      const resPerms = await fetch(`${API_BASE}/api/v1/roles`, { headers }); // We might need a better endpoint for 'my permissions'
       if (resPerms.ok) {
         const allPerms = await resPerms.json();
         setPermissions(allPerms.filter((p: any) => p.role_name === role));

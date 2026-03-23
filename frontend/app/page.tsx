@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import LoginForm from './components/LoginForm';
 import DashboardClient from '@/app/components/DashboardClient';
+import { API_BASE } from './config';
 
 export default async function DashboardPage() {
   const cookieStore = await cookies();
@@ -17,11 +18,11 @@ export default async function DashboardPage() {
 
   try {
     const [leadsRes, propsRes] = await Promise.all([
-      fetch('http://localhost:8080/api/v1/leads', {
+      fetch(`${API_BASE}/api/v1/leads`, {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store'
       }),
-      fetch('http://localhost:8080/api/v1/properties', {
+      fetch(`${API_BASE}/api/v1/properties`, {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store'
       })

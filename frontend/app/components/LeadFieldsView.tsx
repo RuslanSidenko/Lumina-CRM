@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Lead } from '../types';
+import { API_BASE } from '../config';
 
 interface LeadFieldsViewProps {
   lead: Lead;
@@ -32,7 +33,7 @@ export default function LeadFieldsView({ lead, token, onUpdate }: LeadFieldsView
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch('http://localhost:8080/api/v1/users', {
+      const res = await fetch(`${API_BASE}/api/v1/users`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) setUsers(await res.json());
@@ -43,7 +44,7 @@ export default function LeadFieldsView({ lead, token, onUpdate }: LeadFieldsView
 
   const fetchCustomFields = async () => {
     try {
-      const res = await fetch('http://localhost:8080/api/v1/custom-fields', {
+      const res = await fetch(`${API_BASE}/api/v1/custom-fields`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -69,7 +70,7 @@ export default function LeadFieldsView({ lead, token, onUpdate }: LeadFieldsView
     setIsUpdating(true);
     try {
       let updatedLead = { ...lead };
-      
+
       if (fieldName.startsWith('custom_')) {
         const customKey = fieldName.replace('custom_', '');
         updatedLead.custom_fields = {
@@ -80,7 +81,7 @@ export default function LeadFieldsView({ lead, token, onUpdate }: LeadFieldsView
         (updatedLead as any)[fieldName] = value;
       }
 
-      const res = await fetch(`http://localhost:8080/api/v1/leads/${lead.id}`, {
+      const res = await fetch(`${API_BASE}/api/v1/leads/${lead.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -103,7 +104,7 @@ export default function LeadFieldsView({ lead, token, onUpdate }: LeadFieldsView
   const renderField = (label: string, fieldName: string, value: any, type: string = 'text') => {
     const isEditing = editingField === fieldName;
 
-    const displayValue = fieldName === 'assigned_to' 
+    const displayValue = fieldName === 'assigned_to'
       ? users.find(u => u.id === value)?.name || 'Unassigned'
       : value;
 
@@ -112,7 +113,7 @@ export default function LeadFieldsView({ lead, token, onUpdate }: LeadFieldsView
         <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider flex justify-between items-center">
           {label}
           {!isEditing && (
-            <button 
+            <button
               onClick={() => startEditing(fieldName, value)}
               className="opacity-0 group-hover:opacity-100 text-brand-400 hover:text-brand-300 transition-all text-[9px] font-bold"
             >
@@ -120,7 +121,7 @@ export default function LeadFieldsView({ lead, token, onUpdate }: LeadFieldsView
             </button>
           )}
         </label>
-        
+
         {isEditing ? (
           <div className="flex gap-2 animate-in slide-in-from-top-1 duration-200">
             {fieldName === 'status' ? (
@@ -160,22 +161,22 @@ export default function LeadFieldsView({ lead, token, onUpdate }: LeadFieldsView
                 }}
               />
             )}
-            <button 
+            <button
               onClick={() => handleUpdate(fieldName, editValue)}
               disabled={isUpdating}
               className="p-1 text-green-400 hover:bg-green-500/10 rounded disabled:opacity-50"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
             </button>
-            <button 
+            <button
               onClick={cancelEditing}
               className="p-1 text-red-400 hover:bg-red-500/10 rounded"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
         ) : (
-          <div 
+          <div
             className="text-slate-200 font-medium py-1 px-3 border border-transparent hover:border-white/5 rounded transition-all cursor-pointer truncate"
             onClick={() => startEditing(fieldName, value)}
           >

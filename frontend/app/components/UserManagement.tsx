@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react';
+import { API_BASE } from '../config';
 
 interface UserManagementProps {
   token: string;
@@ -18,7 +19,7 @@ export default function UserManagement({ token }: UserManagementProps) {
 
   const fetchUsers = async () => {
     setLoading(true);
-    const res = await fetch('http://localhost:8080/api/v1/users', {
+    const res = await fetch(`${API_BASE}/api/v1/users`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     if (res.ok) setUsers(await res.json());
@@ -27,7 +28,7 @@ export default function UserManagement({ token }: UserManagementProps) {
 
   const createUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch('http://localhost:8080/api/v1/users', {
+    const res = await fetch(`${API_BASE}/api/v1/users`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -43,7 +44,7 @@ export default function UserManagement({ token }: UserManagementProps) {
   };
 
   const updateRole = async (id: number, role: string) => {
-    const res = await fetch(`http://localhost:8080/api/v1/users/${id}/role`, {
+    const res = await fetch(`${API_BASE}/api/v1/users/${id}/role`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -56,7 +57,7 @@ export default function UserManagement({ token }: UserManagementProps) {
 
   const deleteUser = async (id: number) => {
     if (!confirm('Are you sure you want to remove this user?')) return;
-    const res = await fetch(`http://localhost:8080/api/v1/users/${id}`, {
+    const res = await fetch(`${API_BASE}/api/v1/users/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     });

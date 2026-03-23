@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react';
+import { API_BASE } from '../config';
 
 interface RolePermission {
   id: number;
@@ -45,7 +46,7 @@ export default function RoleManagement({ token }: RoleManagementProps) {
   const fetchPermissions = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:8080/api/v1/roles', {
+      const res = await fetch(`${API_BASE}/api/v1/roles`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -63,7 +64,7 @@ export default function RoleManagement({ token }: RoleManagementProps) {
 
   const fetchCustomFields = async () => {
     try {
-      const res = await fetch('http://localhost:8080/api/v1/custom-fields', {
+      const res = await fetch(`${API_BASE}/api/v1/custom-fields`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) setCustomFields(await res.json());
@@ -90,7 +91,7 @@ export default function RoleManagement({ token }: RoleManagementProps) {
     const updated = { ...original, ...updates };
 
     try {
-      const res = await fetch(`http://localhost:8080/api/v1/roles/${id}`, {
+      const res = await fetch(`${API_BASE}/api/v1/roles/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -126,7 +127,7 @@ export default function RoleManagement({ token }: RoleManagementProps) {
     setIsCreating(true);
 
     try {
-      const res = await fetch('http://localhost:8080/api/v1/roles', {
+      const res = await fetch(`${API_BASE}/api/v1/roles`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -157,9 +158,9 @@ export default function RoleManagement({ token }: RoleManagementProps) {
           <p className="text-sm text-slate-500 mt-1">Manage granular permissions and row-level access for every role.</p>
         </div>
         <form onSubmit={createRole} className="flex gap-2">
-          <input 
-            type="text" 
-            placeholder="New Role Name (e.g. Manager)" 
+          <input
+            type="text"
+            placeholder="New Role Name (e.g. Manager)"
             className="input-field bg-white/5 py-2 px-4 text-sm w-64"
             value={newRoleName}
             onChange={e => setNewRoleName(e.target.value)}
@@ -173,117 +174,117 @@ export default function RoleManagement({ token }: RoleManagementProps) {
       <div className="space-y-12">
         {getRoles().map(role => (
           <div key={role} className="flex flex-col gap-4">
-             <div className="flex items-center gap-4 px-2">
-                <h3 className="text-lg font-bold text-brand-400 capitalize">{role}</h3>
-                <div className="h-px flex-1 bg-white/5"></div>
-             </div>
-             
-             <div className="glass-panel overflow-visible border border-white/5 bg-white/[0.02]">
-                <table className="w-full text-left text-sm border-collapse">
-                   <thead>
-                      <tr className="bg-white/5 text-[10px] font-black uppercase text-slate-500 tracking-wider">
-                         <th className="px-6 py-4">Resource</th>
-                         <th className="px-4 py-4 text-center">View</th>
-                         <th className="px-4 py-4 text-center">View All</th>
-                         <th className="px-4 py-4 text-center">Create</th>
-                         <th className="px-4 py-4 text-center">Edit</th>
-                         <th className="px-4 py-4 text-center">Edit All</th>
-                         <th className="px-4 py-4 text-center">Delete</th>
-                         <th className="px-6 py-4">Restricted Fields</th>
-                      </tr>
-                   </thead>
-                   <tbody className="divide-y divide-white/5">
-                      {permissions.filter(p => p.role_name === role).map(p => (
-                        <tr key={p.id} className="hover:bg-white/[0.01] transition-colors group">
-                           <td className="px-6 py-4 font-bold text-slate-300 capitalize">{p.resource}</td>
-                           <td className="px-4 py-4 text-center">
-                              <input 
-                                type="checkbox" 
-                                checked={p.can_view} 
-                                onChange={e => updatePermission(p.id, { can_view: e.target.checked })}
-                                className="rounded bg-slate-900 border-white/10 text-brand-500"
-                              />
-                           </td>
-                           <td className="px-4 py-4 text-center">
-                              <input 
-                                type="checkbox" 
-                                checked={p.can_view_all} 
-                                onChange={e => updatePermission(p.id, { can_view_all: e.target.checked })}
-                                className="rounded bg-slate-900 border-white/10 text-brand-500"
-                              />
-                           </td>
-                           <td className="px-4 py-4 text-center">
-                              <input 
-                                type="checkbox" 
-                                checked={p.can_create} 
-                                onChange={e => updatePermission(p.id, { can_create: e.target.checked })}
-                                className="rounded bg-slate-900 border-white/10 text-brand-500"
-                              />
-                           </td>
-                           <td className="px-4 py-4 text-center">
-                              <input 
-                                type="checkbox" 
-                                checked={p.can_edit} 
-                                onChange={e => updatePermission(p.id, { can_edit: e.target.checked })}
-                                className="rounded bg-slate-900 border-white/10 text-brand-500"
-                              />
-                           </td>
-                           <td className="px-4 py-4 text-center">
-                              <input 
-                                type="checkbox" 
-                                checked={p.can_edit_all} 
-                                onChange={e => updatePermission(p.id, { can_edit_all: e.target.checked })}
-                                className="rounded bg-slate-900 border-white/10 text-brand-500"
-                              />
-                           </td>
-                           <td className="px-4 py-4 text-center">
-                              <input 
-                                type="checkbox" 
-                                checked={p.can_delete} 
-                                onChange={e => updatePermission(p.id, { can_delete: e.target.checked })}
-                                className="rounded bg-slate-900 border-white/10 text-brand-500"
-                              />
-                           </td>
-                           <td className="px-6 py-4 relative">
-                              <div className="flex flex-wrap gap-1 items-center min-h-[32px]">
-                                 {p.restricted_fields.map(f => (
-                                   <span key={f} className="bg-red-500/10 text-red-400 text-[10px] font-bold px-2 py-0.5 rounded border border-red-500/20 flex items-center gap-1 group/tag">
-                                     {f}
-                                     <button onClick={() => toggleRestrictedField(p.id, f)} className="hover:text-red-300">×</button>
-                                   </span>
-                                 ))}
-                                 <button 
-                                   onClick={() => setActiveSelector(activeSelector === p.id ? null : p.id)}
-                                   className="text-brand-400 hover:text-brand-300 text-xl leading-none ml-1"
-                                 >
-                                   +
-                                 </button>
-                              </div>
+            <div className="flex items-center gap-4 px-2">
+              <h3 className="text-lg font-bold text-brand-400 capitalize">{role}</h3>
+              <div className="h-px flex-1 bg-white/5"></div>
+            </div>
 
-                              {activeSelector === p.id && (
-                                <div className="absolute top-full right-0 z-50 mt-1 w-48 bg-slate-900 border border-white/10 rounded-xl shadow-2xl p-2 animate-in zoom-in-95 fade-in duration-200">
-                                   <div className="max-h-48 overflow-y-auto">
-                                      {getAvailableFieldsForResource(p.resource).map(field => (
-                                        <label key={field} className="flex items-center gap-2 p-2 hover:bg-white/5 rounded cursor-pointer group">
-                                           <input 
-                                             type="checkbox" 
-                                             checked={p.restricted_fields.includes(field)}
-                                             onChange={() => toggleRestrictedField(p.id, field)}
-                                             className="rounded bg-slate-800 border-white/10 text-brand-500"
-                                           />
-                                           <span className="text-[11px] text-slate-300 group-hover:text-white">{field}</span>
-                                        </label>
-                                      ))}
-                                      {getAvailableFieldsForResource(p.resource).length === 0 && <p className="p-2 text-[11px] text-slate-500 text-center italic">No fields available</p>}
-                                   </div>
-                                </div>
-                              )}
-                           </td>
-                        </tr>
-                      ))}
-                   </tbody>
-                </table>
-             </div>
+            <div className="glass-panel overflow-visible border border-white/5 bg-white/[0.02]">
+              <table className="w-full text-left text-sm border-collapse">
+                <thead>
+                  <tr className="bg-white/5 text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                    <th className="px-6 py-4">Resource</th>
+                    <th className="px-4 py-4 text-center">View</th>
+                    <th className="px-4 py-4 text-center">View All</th>
+                    <th className="px-4 py-4 text-center">Create</th>
+                    <th className="px-4 py-4 text-center">Edit</th>
+                    <th className="px-4 py-4 text-center">Edit All</th>
+                    <th className="px-4 py-4 text-center">Delete</th>
+                    <th className="px-6 py-4">Restricted Fields</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {permissions.filter(p => p.role_name === role).map(p => (
+                    <tr key={p.id} className="hover:bg-white/[0.01] transition-colors group">
+                      <td className="px-6 py-4 font-bold text-slate-300 capitalize">{p.resource}</td>
+                      <td className="px-4 py-4 text-center">
+                        <input
+                          type="checkbox"
+                          checked={p.can_view}
+                          onChange={e => updatePermission(p.id, { can_view: e.target.checked })}
+                          className="rounded bg-slate-900 border-white/10 text-brand-500"
+                        />
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <input
+                          type="checkbox"
+                          checked={p.can_view_all}
+                          onChange={e => updatePermission(p.id, { can_view_all: e.target.checked })}
+                          className="rounded bg-slate-900 border-white/10 text-brand-500"
+                        />
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <input
+                          type="checkbox"
+                          checked={p.can_create}
+                          onChange={e => updatePermission(p.id, { can_create: e.target.checked })}
+                          className="rounded bg-slate-900 border-white/10 text-brand-500"
+                        />
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <input
+                          type="checkbox"
+                          checked={p.can_edit}
+                          onChange={e => updatePermission(p.id, { can_edit: e.target.checked })}
+                          className="rounded bg-slate-900 border-white/10 text-brand-500"
+                        />
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <input
+                          type="checkbox"
+                          checked={p.can_edit_all}
+                          onChange={e => updatePermission(p.id, { can_edit_all: e.target.checked })}
+                          className="rounded bg-slate-900 border-white/10 text-brand-500"
+                        />
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <input
+                          type="checkbox"
+                          checked={p.can_delete}
+                          onChange={e => updatePermission(p.id, { can_delete: e.target.checked })}
+                          className="rounded bg-slate-900 border-white/10 text-brand-500"
+                        />
+                      </td>
+                      <td className="px-6 py-4 relative">
+                        <div className="flex flex-wrap gap-1 items-center min-h-[32px]">
+                          {p.restricted_fields.map(f => (
+                            <span key={f} className="bg-red-500/10 text-red-400 text-[10px] font-bold px-2 py-0.5 rounded border border-red-500/20 flex items-center gap-1 group/tag">
+                              {f}
+                              <button onClick={() => toggleRestrictedField(p.id, f)} className="hover:text-red-300">×</button>
+                            </span>
+                          ))}
+                          <button
+                            onClick={() => setActiveSelector(activeSelector === p.id ? null : p.id)}
+                            className="text-brand-400 hover:text-brand-300 text-xl leading-none ml-1"
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        {activeSelector === p.id && (
+                          <div className="absolute top-full right-0 z-50 mt-1 w-48 bg-slate-900 border border-white/10 rounded-xl shadow-2xl p-2 animate-in zoom-in-95 fade-in duration-200">
+                            <div className="max-h-48 overflow-y-auto">
+                              {getAvailableFieldsForResource(p.resource).map(field => (
+                                <label key={field} className="flex items-center gap-2 p-2 hover:bg-white/5 rounded cursor-pointer group">
+                                  <input
+                                    type="checkbox"
+                                    checked={p.restricted_fields.includes(field)}
+                                    onChange={() => toggleRestrictedField(p.id, field)}
+                                    className="rounded bg-slate-800 border-white/10 text-brand-500"
+                                  />
+                                  <span className="text-[11px] text-slate-300 group-hover:text-white">{field}</span>
+                                </label>
+                              ))}
+                              {getAvailableFieldsForResource(p.resource).length === 0 && <p className="p-2 text-[11px] text-slate-500 text-center italic">No fields available</p>}
+                            </div>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         ))}
       </div>

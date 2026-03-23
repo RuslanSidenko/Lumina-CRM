@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Task } from '../types';
+import { API_BASE } from '../config';
 
 interface TaskManagerProps {
   leadId: number;
@@ -17,7 +18,7 @@ export default function TaskManager({ leadId, token }: TaskManagerProps) {
 
   const fetchTasks = async () => {
     try {
-      const res = await fetch(`http://localhost:8080/api/v1/tasks?lead_id=${leadId}`, {
+      const res = await fetch(`${API_BASE}/api/v1/tasks?lead_id=${leadId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) setTasks(await res.json());
@@ -27,7 +28,7 @@ export default function TaskManager({ leadId, token }: TaskManagerProps) {
   const createTask = async () => {
     if (!newTask.title.trim()) return;
     try {
-      const res = await fetch('http://localhost:8080/api/v1/tasks', {
+      const res = await fetch(`${API_BASE}/api/v1/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ lead_id: leadId, title: newTask.title, description: '', due_at: newTask.due_at || new Date().toISOString(), status: 'pending' }),
@@ -38,7 +39,7 @@ export default function TaskManager({ leadId, token }: TaskManagerProps) {
 
   const toggleStatus = async (task: Task) => {
     const newStatus = task.status === 'pending' ? 'completed' : 'pending';
-    const res = await fetch(`http://localhost:8080/api/v1/tasks/${task.id}/status`, {
+    const res = await fetch(`${API_BASE}/api/v1/tasks/${task.id}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ status: newStatus }),

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react';
+import { API_BASE } from '../config';
 
 interface APIKey {
   id: number;
@@ -25,7 +26,7 @@ export default function APIKeyManagement({ token }: APIKeyManagementProps) {
   }, []);
 
   const fetchKeys = async () => {
-    const res = await fetch('http://localhost:8080/api/v1/api-keys', {
+    const res = await fetch(`${API_BASE}/api/v1/api-keys`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     if (res.ok) setKeys(await res.json());
@@ -34,7 +35,7 @@ export default function APIKeyManagement({ token }: APIKeyManagementProps) {
   const createKey = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const res = await fetch('http://localhost:8080/api/v1/api-keys', {
+    const res = await fetch(`${API_BASE}/api/v1/api-keys`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -52,7 +53,7 @@ export default function APIKeyManagement({ token }: APIKeyManagementProps) {
 
   const deleteKey = async (id: number) => {
     if (!confirm('Are you sure? Any external integration using this key will break.')) return;
-    const res = await fetch(`http://localhost:8080/api/v1/api-keys/${id}`, {
+    const res = await fetch(`${API_BASE}/api/v1/api-keys/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     });
