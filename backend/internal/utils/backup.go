@@ -4,17 +4,20 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
+
+	"real_estate_crm/internal/repository"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"real_estate_crm/internal/repository"
 )
 
 func UpdateBackupStatus(status string, err error) {
@@ -24,11 +27,11 @@ func UpdateBackupStatus(status string, err error) {
 		val = fmt.Sprintf("%s | Error: %v", timestamp, err)
 	}
 
-	_, _ = repository.DB.Exec(context.Background(), 
-		"INSERT INTO automation_settings (key, value) VALUES ('last_backup_status', $1) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value", 
+	_, _ = repository.DB.Exec(context.Background(),
+		"INSERT INTO automation_settings (key, value) VALUES ('last_backup_status', $1) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
 		status)
-	_, _ = repository.DB.Exec(context.Background(), 
-		"INSERT INTO automation_settings (key, value) VALUES ('last_backup_time', $1) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value", 
+	_, _ = repository.DB.Exec(context.Background(),
+		"INSERT INTO automation_settings (key, value) VALUES ('last_backup_time', $1) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
 		val)
 }
 
@@ -45,7 +48,7 @@ func RunBackup() (string, error) {
 	// In Docker, we need to pass the password via PGPASSWORD if it's not in the URL,
 	// but our DATABASE_URL usually has it.
 	cmd := exec.Command("pg_dump", dbURL, "-f", tempFile, "--no-owner", "--no-privileges")
-	
+
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("pg_dump failed: %v, output: %s", err, string(output))
@@ -61,6 +64,15 @@ func UploadToS3(filePath string) error {
 	secretKey := os.Getenv("S3_SECRET_KEY")
 	endpoint := os.Getenv("S3_ENDPOINT")
 	region := os.Getenv("S3_REGION")
+
+	// 0. Smart Parsing: If endpoint looks like https://host/bucket, split them
+	if strings.Contains(endpoint, ".com/") || strings.Contains(endpoint, ".net/") {
+		u, err := url.Parse(endpoint)
+		if err == nil && u.Path != "" && u.Path != "/" {
+			bucket = strings.TrimPrefix(u.Path, "/")
+			endpoint = fmt.Sprintf("%s://%s", u.Scheme, u.Host)
+		}
+	}
 
 	if bucket == "" || accessKey == "" || secretKey == "" {
 		return fmt.Errorf("S3 is not fully configured (Bucket/Access/Secret missing)")
@@ -97,7 +109,7 @@ func UploadToS3(filePath string) error {
 	tmClient := transfermanager.New(s3Client)
 
 	log.Printf("Starting S3 upload to %s/%s using TransferManager...", bucket, s3Key)
-	
+
 	// Use UploadObject instead of previous manager.Uploader
 	_, err = tmClient.UploadObject(context.TODO(), &transfermanager.UploadObjectInput{
 		Bucket: aws.String(bucket),
@@ -123,7 +135,7 @@ func StartAutoBackup() {
 		for {
 			log.Println("Next daily backup in 24 hours...")
 			time.Sleep(24 * time.Hour)
-			
+
 			log.Println("Starting automated daily backup...")
 			path, err := RunBackup()
 			if err != nil {
@@ -139,7 +151,7 @@ func StartAutoBackup() {
 			} else {
 				UpdateBackupStatus("success", nil)
 			}
-			
+
 			CleanUp(path)
 		}
 	}()

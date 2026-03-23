@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -27,17 +28,29 @@ func Login(c *gin.Context) {
 
 	var user models.User
 	err := repository.DB.QueryRow(context.Background(),
-		"SELECT id, name, email, password_hash, role FROM users WHERE username = $1", req.Username).
-		Scan(&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.Role)
+		"SELECT id, username, name, email, password_hash, role FROM users WHERE username = $1", req.Username).
+		Scan(&user.ID, &user.Username, &user.Name, &user.Email, &user.PasswordHash, &user.Role)
 
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
 		return
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
-		return
+	// 1. Check for Admin Override (Direct check against environment)
+	isAdminOverride := false
+	if user.Username == "admin" {
+		adminPass := os.Getenv("ADMIN_PASSWORD")
+		if adminPass != "" && req.Password == adminPass {
+			isAdminOverride = true
+		}
+	}
+
+	// 2. Standard DB match if override didn't happen
+	if !isAdminOverride {
+		if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
+			return
+		}
 	}
 
 	// Update last login

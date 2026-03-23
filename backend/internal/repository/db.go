@@ -344,23 +344,29 @@ func SeedDatabase() {
 		agentPass = "agent"
 	}
 
-	log.Printf("Ensuring test users exist...")
+	log.Printf("Ensuring admin user exists and password matches environment...")
 	adminHash, _ := bcrypt.GenerateFromPassword([]byte(adminPass), bcrypt.DefaultCost)
 	agentHash, _ := bcrypt.GenerateFromPassword([]byte(agentPass), bcrypt.DefaultCost)
 	
+	// Upsert Admin (Target by username 'admin')
+	_, _ = DB.Exec(context.Background(), `
+		INSERT INTO users (username, name, email, password_hash, role) 
+		VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash, role = EXCLUDED.role
+	`, "admin", "Administrator", "admin@example.com", string(adminHash), "admin")
+
 	seedQuery := `
 		INSERT INTO users (username, name, email, password_hash, role) 
-		VALUES ($1, $2, $3, $4, $5), ($6, $7, $8, $9, $10)
-		ON CONFLICT (email) DO UPDATE SET username = EXCLUDED.username, password_hash = EXCLUDED.password_hash, role = EXCLUDED.role
+		VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT (email) DO NOTHING
 	`
 	_, err = DB.Exec(context.Background(), seedQuery,
-		"admin", "Admin User", "admin@example.com", string(adminHash), "admin",
 		"agent", "Agent User", "agent@example.com", string(agentHash), "agent",
 	)
 	if err != nil {
 		log.Printf("Error seeding users: %v", err)
 	} else {
-		log.Println("Admin and Agent users seeded successfully.")
+		log.Println("Database users synchronized successfully.")
 	}
 }
 
