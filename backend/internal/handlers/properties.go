@@ -52,19 +52,8 @@ func GetProperties(c *gin.Context) {
 			continue
 		}
 
-		if hasPerms {
-			perm := perms.(models.RolePermission)
-			for _, rf := range perm.RestrictedFields {
-				switch rf {
-				case "price": p.Price = 0
-				case "description": p.Description = "***"
-				case "custom_fields": p.CustomFields = nil
-				}
-				if p.CustomFields != nil {
-					delete(p.CustomFields, rf)
-				}
-			}
-		}
+		// Field-level visibility is no longer restricted, only modification is.
+
 
 		properties = append(properties, p)
 	}

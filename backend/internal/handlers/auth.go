@@ -130,3 +130,42 @@ func ChangePassword(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
 }
+
+func GetMyPermissions(c *gin.Context) {
+	role, exists := c.Get("userRole")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	roleName := role.(string)
+
+	if roleName == "admin" {
+		c.JSON(http.StatusOK, gin.H{
+			"role":              "admin",
+			"restricted_fields": make(map[string][]string),
+		})
+		return
+	}
+
+	rows, err := repository.DB.Query(context.Background(),
+		"SELECT resource, restricted_fields FROM role_permissions WHERE role_name = $1", roleName)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		return
+	}
+	defer rows.Close()
+
+	perms := make(map[string][]string)
+	for rows.Next() {
+		var resource string
+		var restrictedFields []string
+		if err := rows.Scan(&resource, &restrictedFields); err == nil {
+			perms[resource] = restrictedFields
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"role":              roleName,
+		"restricted_fields": perms,
+	})
+}

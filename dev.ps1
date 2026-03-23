@@ -1,13 +1,18 @@
-# Lumina CRM - Local Development Launcher
-# Runs both Backend (Go) and Frontend (Next.js) in parallel processes
+# 1. Move to backend and build
+# This name stays same so Windows Firewall only asks once
+Set-Location backend
+go build -o dev_app.exe ./cmd/api/main.go
+Set-Location ..
 
-Write-Host "🚀 Starting Lumina CRM Development Environment..." -ForegroundColor Cyan
+# 2. Launch Backend (Minimized)
+$B = "-NoExit", "-Command", "cd backend; ./dev_app.exe"
+Start-Process powershell -ArgumentList $B -WindowStyle Minimized
 
-# Define background jobs
-$BackendJob = Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd backend; go run ./cmd/api/main.go" -PassThru
-$FrontendJob = Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd frontend; npm run dev" -PassThru
+# 3. Launch Frontend (Minimized)
+$F = "-NoExit", "-Command", "cd frontend; npm run dev"
+Start-Process powershell -ArgumentList $F -WindowStyle Minimized
 
-Write-Host "✅ Backend and Frontend processes launched!" -ForegroundColor Green
-Write-Host "🌐 API: http://localhost:8090" -ForegroundColor Gray
-Write-Host "🌐 App: http://localhost:3001" -ForegroundColor Gray
-Write-Host "💡 To stop, simply close the two newly opened PowerShell windows." -ForegroundColor Yellow
+# 4. Simple Status (No quotes to prevent ParserErrors)
+Write-Host Lumina_CRM_Started_Successfully -ForegroundColor Green
+Write-Host API_at_port_8090
+Write-Host App_at_port_3001

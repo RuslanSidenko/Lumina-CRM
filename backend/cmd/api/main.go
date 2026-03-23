@@ -51,6 +51,8 @@ func main() {
 		{
 			// Auth actions available to all logged-in users
 			protected.PUT("/auth/change-password", handlers.ChangePassword)
+			protected.GET("/auth/permissions", handlers.GetMyPermissions)
+
 
 			// Dynamic RBAC for Leads
 			protected.GET("/leads", middleware.RequirePermission("leads", "view"), handlers.GetLeads)

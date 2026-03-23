@@ -53,21 +53,8 @@ func GetLeads(c *gin.Context) {
 			continue
 		}
 		
-		// RBAC field-level filtering
-		if hasPerms {
-			p := perms.(models.RolePermission)
-			for _, rf := range p.RestrictedFields {
-				switch rf {
-				case "phone": l.Phone = "***"
-				case "email": l.Email = "***"
-				case "custom_fields": l.CustomFields = nil
-				}
-				// Also check custom fields specifically
-				if l.CustomFields != nil {
-					delete(l.CustomFields, rf)
-				}
-			}
-		}
+		// Field-level visibility is no longer restricted, only modification is.
+
 		
 		leads = append(leads, l)
 	}
