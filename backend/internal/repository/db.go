@@ -8,6 +8,7 @@ import (
 
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -23,49 +24,65 @@ func ConnectDB() {
 		dsn = "postgres://postgres:password@localhost:5432/crm_db?sslmode=disable"
 	}
 
-	// 1. Ensure the database exists by connecting to the 'postgres' default database first
+	ctx := context.Background()
+	var pool *pgxpool.Pool
+	var err error
+
+	// 1. Connection Retry Loop
+	maxRetries := 15
+	for i := 0; i < maxRetries; i++ {
+		log.Printf("Connecting to database (attempt %d/%d)...", i+1, maxRetries)
+		
+		// Attempt to ensure database exists first
+		ensureDatabaseExists(dsn)
+
+		pool, err = pgxpool.New(ctx, dsn)
+		if err == nil {
+			err = pool.Ping(ctx)
+			if err == nil {
+				DB = pool
+				log.Println("Connected to PostgreSQL successfully.")
+				break
+			}
+		}
+
+		log.Printf("Database not ready: %v. Retrying in 2 seconds...", err)
+		time.Sleep(2 * time.Second)
+	}
+
+	if DB == nil {
+		log.Fatalf("Could not connect to database after %d attempts: %v", maxRetries, err)
+	}
+
+	SeedDatabase()
+}
+
+func ensureDatabaseExists(dsn string) {
 	re := regexp.MustCompile(`/[^/?]+(\?|$)`)
 	masterDSN := re.ReplaceAllString(dsn, "/postgres$1")
 	
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	conn, err := pgx.Connect(ctx, masterDSN)
 	if err != nil {
-		log.Printf("Warning: Could not connect to master postgres DB at %s: %v. Database creation skipped.", masterDSN, err)
-	} else {
-		dbName := "crm_db"
-		// Simple extraction: find string between last / and ? or end of string
-		parts := strings.Split(dsn, "/")
-		if len(parts) > 0 {
-			lastPart := parts[len(parts)-1]
-			dbName = strings.Split(lastPart, "?")[0]
-		}
-		
-		var exists bool
-		err = conn.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = $1)", dbName).Scan(&exists)
-		if err != nil {
-			log.Printf("Error checking if database %s exists: %v", dbName, err)
-		} else if !exists {
-			log.Printf("Database '%s' not found locally. Creating it now...", dbName)
-			_, err = conn.Exec(ctx, fmt.Sprintf("CREATE DATABASE %s", dbName))
-			if err != nil {
-				log.Printf("Error executing CREATE DATABASE %s: %v", dbName, err)
-			} else {
-				log.Printf("Database '%s' created successfully.", dbName)
-			}
-		} else {
-			log.Printf("Database '%s' already exists.", dbName)
-		}
-		conn.Close(ctx)
+		return
+	}
+	defer conn.Close(ctx)
+
+	dbName := "crm_db"
+	parts := strings.Split(dsn, "/")
+	if len(parts) > 0 {
+		lastPart := parts[len(parts)-1]
+		dbName = strings.Split(lastPart, "?")[0]
 	}
 
-	// 2. Connect to the application database
-	pool, err := pgxpool.New(ctx, dsn)
-	if err != nil {
-		log.Fatal("Unable to connect to database: ", err)
+	var exists bool
+	_ = conn.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = $1)", dbName).Scan(&exists)
+	if !exists {
+		log.Printf("Database '%s' not found. Creating...", dbName)
+		_, _ = conn.Exec(ctx, fmt.Sprintf("CREATE DATABASE %s", dbName))
 	}
-	DB = pool
-	fmt.Println("Connected to PostgreSQL successfully.")
-	SeedDatabase()
 }
 
 func SeedDatabase() {
@@ -168,8 +185,9 @@ func SeedDatabase() {
 	var err error
 	_, err = DB.Exec(context.Background(), schema)
 	if err != nil {
-		log.Printf("Error creating schema: %v", err)
+		log.Fatalf("CRITICAL: Error creating schema: %v. Execution aborted.", err)
 	}
+	log.Println("Schema initialized successfully.")
 
 	// Default Roles Seeding
 	log.Println("Seeding default roles and permissions...")
