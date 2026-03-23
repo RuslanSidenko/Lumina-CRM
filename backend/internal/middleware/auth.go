@@ -6,10 +6,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"real_estate_crm/internal/models"
 	"real_estate_crm/internal/repository"
+
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 var JwtSecret = []byte("super_secret_crm_key") // Use ENV var in production
@@ -79,10 +80,8 @@ func RequirePermission(resource, action string) gin.HandlerFunc {
 		}
 
 		roleName := userRole.(string)
-		fmt.Printf("[RBAC DEBUG] Path: %s | Role: %s | Resource: %s | Action: %s\n", c.Request.URL.Path, roleName, resource, action)
 
 		if roleName == "admin" {
-			fmt.Println("[RBAC DEBUG] Admin bypass allowed.")
 			c.Next() // Admin always bypasses specific permission checks
 			return
 		}
@@ -93,7 +92,6 @@ func RequirePermission(resource, action string) gin.HandlerFunc {
 			roleName, resource).Scan(&p.CanView, &p.CanViewAll, &p.CanCreate, &p.CanEdit, &p.CanEditAll, &p.CanDelete, &p.RestrictedFields)
 
 		if err != nil {
-			fmt.Printf("[RBAC DEBUG] Error fetching permissions for role %s: %v\n", roleName, err)
 			c.JSON(http.StatusForbidden, gin.H{"error": "Permissions not defined for this role"})
 			c.Abort()
 			return
@@ -112,13 +110,12 @@ func RequirePermission(resource, action string) gin.HandlerFunc {
 		}
 
 		if !allowed {
-			fmt.Printf("[RBAC DEBUG] Forbidden: Role %s does not have %s on %s\n", roleName, action, resource)
 			c.JSON(http.StatusForbidden, gin.H{"error": fmt.Sprintf("You do not have permission to %s %s", action, resource)})
 			c.Abort()
 			return
 		}
 
-	c.Set("permissions", p)
+		c.Set("permissions", p)
 		c.Next()
 	}
 }
