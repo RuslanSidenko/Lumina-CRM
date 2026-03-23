@@ -5,9 +5,9 @@ services:
     image: postgres:17-alpine
     container_name: crm_postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: crm_db
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-crm_db}
     ports:
       - "5432:5432"
     volumes:
@@ -19,10 +19,10 @@ services:
       context: ./backend
     container_name: crm_backend
     ports:
-      - "8080:8080"
+      - "${PORT:-8080}:${PORT:-8080}"
     environment:
-      - DATABASE_URL=postgres://postgres:password@db:5432/crm_db?sslmode=disable
-      - PORT=8080
+      - DATABASE_URL=${DATABASE_URL:-postgres://postgres:password@db:5432/crm_db?sslmode=disable}
+      - PORT=${PORT:-8080}
     depends_on:
       - db
 
