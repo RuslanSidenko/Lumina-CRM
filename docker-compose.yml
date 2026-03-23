@@ -31,7 +31,9 @@ services:
       context: ./frontend
     container_name: crm_frontend
     ports:
-      - "3001:3001"
+      - "${FRONTEND_PORT:-3001}:${FRONTEND_PORT:-3001}"
+    environment:
+      - PORT=${FRONTEND_PORT:-3001}
     depends_on:
       - backend
 
