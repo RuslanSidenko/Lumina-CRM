@@ -25,6 +25,7 @@ services:
     environment:
       - DATABASE_URL=${DATABASE_URL:-postgres://postgres:password@db:5432/crm_db?sslmode=disable}
       - PORT=${PORT:-8090}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
     depends_on:
       - db
 

@@ -16,6 +16,12 @@ export async function loginAction(username: string, password: string) {
       const cookieStore = await cookies();
       cookieStore.set('crm_token', data.token, { path: '/' });
       cookieStore.set('crm_role', data.user.role, { path: '/' });
+      
+      if (data.user.must_change_password) {
+        cookieStore.set('crm_must_change', 'true', { path: '/' });
+      } else {
+        cookieStore.delete('crm_must_change');
+      }
       return { success: true };
     }
     return { success: false, error: data.error || "Login failed" };

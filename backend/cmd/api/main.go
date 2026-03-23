@@ -102,10 +102,17 @@ func main() {
 				adminOnly.GET("/api-keys", handlers.GetAPIKeys)
 				adminOnly.POST("/api-keys", handlers.CreateAPIKey)
 				adminOnly.DELETE("/api-keys/:id", handlers.DeleteAPIKey)
+
+				// Invitations
+				adminOnly.POST("/invitations", handlers.CreateInvitation)
 			}
 			// Agents can also read field definitions
 			protected.GET("/custom-fields", handlers.GetCustomFields)
 		}
+
+		// Public Invitation validation and fulfillment
+		api.GET("/invitations/:token", handlers.GetInvitation)
+		api.POST("/invitations/fulfill", handlers.FulfillInvitation)
 	}
 
 	port := os.Getenv("PORT")

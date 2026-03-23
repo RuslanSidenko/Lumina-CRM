@@ -16,6 +16,8 @@ import FieldManagement from './FieldManagement';
 import RoleManagement from './RoleManagement';
 import APIKeyManagement from './APIKeyManagement';
 import ChangePassword from './ChangePassword';
+import MandatoryChangePasswordModal from './MandatoryChangePasswordModal';
+import { useEffect } from 'react';
 
 import { Lead, Property } from '../types';
 import { API_BASE } from '../config';
@@ -41,6 +43,14 @@ export default function DashboardClient({ initialLeads, initialProperties, token
   const [showAddDeal, setShowAddDeal] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [mustChangePassword, setMustChangePassword] = useState(false);
+
+  useEffect(() => {
+    const shouldChange = document.cookie.includes('crm_must_change=true');
+    if (shouldChange) {
+      setMustChangePassword(true);
+    }
+  }, []);
 
   const refreshData = async () => {
     try {
@@ -164,6 +174,13 @@ export default function DashboardClient({ initialLeads, initialProperties, token
       {showAddDeal && <AddDealModal token={token} leads={leads} properties={properties} onClose={() => setShowAddDeal(false)} onSuccess={() => { setShowAddDeal(false); refreshData(); }} />}
       {selectedLead && <LeadDetailsModal lead={selectedLead} token={token} onClose={() => setSelectedLead(null)} onUpdate={refreshData} />}
       {selectedProperty && <PropertyDetailsModal property={selectedProperty} token={token} onClose={() => setSelectedProperty(null)} onUpdate={refreshData} />}
+      
+      {mustChangePassword && (
+        <MandatoryChangePasswordModal 
+          token={token} 
+          onSuccess={() => setMustChangePassword(false)} 
+        />
+      )}
     </div>
   );
 }

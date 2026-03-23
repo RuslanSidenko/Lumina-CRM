@@ -180,6 +180,13 @@ func SeedDatabase() {
 		restricted_fields TEXT[] DEFAULT '{}', -- fields they cannot see or edit
 		UNIQUE(role_name, resource)
 	);
+	CREATE TABLE IF NOT EXISTS invitations (
+		id SERIAL PRIMARY KEY,
+		token VARCHAR(64) UNIQUE NOT NULL,
+		role VARCHAR(20) NOT NULL,
+		expires_at TIMESTAMP NOT NULL,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);
 	`
 	
 	var err error
@@ -315,8 +322,18 @@ func SeedDatabase() {
 	}
 
 	// Ensure local users have correct passwords for testing
-	log.Println("Ensuring test users exist with password: 'password'...")
-	hash, _ := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.DefaultCost)
+	adminPass := os.Getenv("ADMIN_PASSWORD")
+	if adminPass == "" {
+		adminPass = "admin"
+	}
+	agentPass := os.Getenv("AGENT_PASSWORD")
+	if agentPass == "" {
+		agentPass = "agent"
+	}
+
+	log.Printf("Ensuring test users exist...")
+	adminHash, _ := bcrypt.GenerateFromPassword([]byte(adminPass), bcrypt.DefaultCost)
+	agentHash, _ := bcrypt.GenerateFromPassword([]byte(agentPass), bcrypt.DefaultCost)
 	
 	seedQuery := `
 		INSERT INTO users (username, name, email, password_hash, role) 
@@ -324,8 +341,8 @@ func SeedDatabase() {
 		ON CONFLICT (email) DO UPDATE SET username = EXCLUDED.username, password_hash = EXCLUDED.password_hash, role = EXCLUDED.role
 	`
 	_, err = DB.Exec(context.Background(), seedQuery,
-		"admin", "Admin User", "admin@example.com", string(hash), "admin",
-		"agent", "Agent User", "agent@example.com", string(hash), "agent",
+		"admin", "Admin User", "admin@example.com", string(adminHash), "admin",
+		"agent", "Agent User", "agent@example.com", string(agentHash), "agent",
 	)
 	if err != nil {
 		log.Printf("Error seeding users: %v", err)
