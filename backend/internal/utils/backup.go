@@ -43,7 +43,7 @@ func RunBackup() (string, error) {
 	}
 
 	timestamp := time.Now().Format("2006-01-02_15-04-05")
-	tempFile := fmt.Sprintf("/tmp/backup_%s.sql", timestamp)
+	tempFile := filepath.Join(os.TempDir(), fmt.Sprintf("backup_%s.sql", timestamp))
 
 	// In Docker, we need to pass the password via PGPASSWORD if it's not in the URL,
 	// but our DATABASE_URL usually has it.
