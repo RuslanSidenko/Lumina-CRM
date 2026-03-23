@@ -20,10 +20,10 @@ jobs:
 
       - name: Build & Push Backend
         run: |
-          docker build -t ghcr.io/${{ github.repository }}/backend:latest ./backend
-          docker push ghcr.io/${{ github.repository }}/backend:latest
+          docker build -t ghcr.io/ruslansidenko/lumina-crm/backend:latest ./backend
+          docker push ghcr.io/ruslansidenko/lumina-crm/backend:latest
 
       - name: Build & Push Frontend
         run: |
-          docker build -t ghcr.io/${{ github.repository }}/frontend:latest ./frontend
-          docker push ghcr.io/${{ github.repository }}/frontend:latest
+          docker build -t ghcr.io/ruslansidenko/lumina-crm/frontend:latest ./frontend
+          docker push ghcr.io/ruslansidenko/lumina-crm/frontend:latest
