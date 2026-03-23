@@ -42,6 +42,8 @@ func main() {
 		// Public Routes
 		api.POST("/auth/login", handlers.Login)
 		api.POST("/public/leads", middleware.RequireAPIKey(), handlers.CreatePublicLead)
+		api.POST("/public/deals", middleware.RequireAPIKey(), handlers.CreatePublicDeal)
+		api.POST("/public/properties", middleware.RequireAPIKey(), handlers.CreatePublicProperty)
 
 		// Evaluated against Auth JWT token
 		protected := api.Group("/")

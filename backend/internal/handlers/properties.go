@@ -161,3 +161,36 @@ func UpdateProperty(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Property updated successfully"})
 }
+
+func CreatePublicProperty(c *gin.Context) {
+	var p models.Property
+	if err := c.ShouldBindJSON(&p); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if p.Status == "" {
+		p.Status = "Pending Review"
+	}
+	if p.CustomFields == nil {
+		p.CustomFields = make(map[string]interface{})
+	}
+
+	var err error
+	if p.AgentID == 0 {
+		err = repository.DB.QueryRow(context.Background(),
+			"INSERT INTO properties (title, address, description, price, bedrooms, bathrooms, area, status, agent_id, images, custom_fields) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NULL, $9, $10) RETURNING id",
+			p.Title, p.Address, p.Description, p.Price, p.Bedrooms, p.Bathrooms, p.Area, p.Status, p.Images, p.CustomFields).Scan(&p.ID)
+	} else {
+		err = repository.DB.QueryRow(context.Background(),
+			"INSERT INTO properties (title, address, description, price, bedrooms, bathrooms, area, status, agent_id, images, custom_fields) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id",
+			p.Title, p.Address, p.Description, p.Price, p.Bedrooms, p.Bathrooms, p.Area, p.Status, p.AgentID, p.Images, p.CustomFields).Scan(&p.ID)
+	}
+
+	if err != nil {
+		log.Println("Create public property error:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create public property listing"})
+		return
+	}
+	c.JSON(http.StatusCreated, p)
+}
