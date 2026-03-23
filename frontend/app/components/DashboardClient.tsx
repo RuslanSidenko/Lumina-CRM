@@ -16,6 +16,7 @@ import FieldManagement from './FieldManagement';
 import RoleManagement from './RoleManagement';
 import APIKeyManagement from './APIKeyManagement';
 import ChangePassword from './ChangePassword';
+import BackupManagement from './BackupManagement';
 import MandatoryChangePasswordModal from './MandatoryChangePasswordModal';
 import { useEffect } from 'react';
 
@@ -164,6 +165,7 @@ export default function DashboardClient({ initialLeads, initialProperties, token
           {activeTab === 'Team'     && (role === 'admin' || permissions.some(p => p.resource === 'users' && p.can_view)) && <UserManagement token={token} />}
           {activeTab === 'Roles'    && role === 'admin' && <RoleManagement token={token} />}
           {activeTab === 'API'      && role === 'admin' && <APIKeyManagement token={token} />}
+          {activeTab === 'Backups'  && role === 'admin' && <BackupManagement token={token} />}
           {activeTab === 'Settings' && <ChangePassword token={token} />}
         </main>
       </div>

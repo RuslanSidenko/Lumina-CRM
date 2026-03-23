@@ -12,6 +12,7 @@ import (
 	"real_estate_crm/internal/handlers"
 	"real_estate_crm/internal/middleware"
 	"real_estate_crm/internal/repository"
+	"real_estate_crm/internal/utils"
 )
 
 func main() {
@@ -105,6 +106,9 @@ func main() {
 
 				// Invitations
 				adminOnly.POST("/invitations", handlers.CreateInvitation)
+
+				// Backup Management
+				adminOnly.POST("/backups/trigger", handlers.TriggerBackup)
 			}
 			// Agents can also read field definitions
 			protected.GET("/custom-fields", handlers.GetCustomFields)
@@ -118,6 +122,10 @@ func main() {
 		api.POST("/auth/forgot-password", handlers.ForgotPassword)
 		api.POST("/auth/reset-password", handlers.ResetPassword)
 	}
+
+	// Start automated daily backups in background
+	utils.StartAutoBackup()
+
 
 	port := os.Getenv("PORT")
 	if port == "" {
