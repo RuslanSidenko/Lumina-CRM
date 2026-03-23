@@ -19,6 +19,7 @@ func main() {
 	repository.ConnectDB()
 
 	r := gin.Default()
+	r.SetTrustedProxies(nil)
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:3001"},
