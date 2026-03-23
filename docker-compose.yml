@@ -20,8 +20,7 @@ services:
       retries: 5
 
   backend:
-    build:
-      context: ./backend
+    image: ghcr.io/ruslansidenko/lumina-crm/backend:latest
     container_name: crm_backend
     ports:
       - "${PORT:-8090}:${PORT:-8090}"
@@ -32,8 +31,7 @@ services:
       - db
 
   frontend:
-    build:
-      context: ./frontend
+    image: ghcr.io/ruslansidenko/lumina-crm/frontend:latest
     container_name: crm_frontend
     ports:
       - "${FRONTEND_PORT:-3001}:${FRONTEND_PORT:-3001}"
