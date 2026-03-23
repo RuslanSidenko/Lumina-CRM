@@ -222,7 +222,14 @@ func SeedDatabase() {
 	for _, p := range defaultPermissions {
 		_, _ = DB.Exec(context.Background(), 
 			`INSERT INTO role_permissions (role_name, resource, can_view, can_view_all, can_create, can_edit, can_edit_all, can_delete) 
-			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (role_name, resource) DO NOTHING`,
+			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+			 ON CONFLICT (role_name, resource) DO UPDATE SET 
+				can_view = EXCLUDED.can_view,
+				can_view_all = EXCLUDED.can_view_all,
+				can_create = EXCLUDED.can_create,
+				can_edit = EXCLUDED.can_edit,
+				can_edit_all = EXCLUDED.can_edit_all,
+				can_delete = EXCLUDED.can_delete`,
 			p.Role, p.Resource, p.View, p.ViewAll, p.Create, p.Edit, p.EditAll, p.Delete)
 	}
 
