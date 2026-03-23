@@ -48,6 +48,20 @@ export default function DashboardClient({ initialLeads, initialProperties, token
   const [mustChangePassword, setMustChangePassword] = useState(false);
 
   useEffect(() => {
+    if (selectedLead) {
+      const updated = leads.find(l => l.id === selectedLead.id);
+      if (updated) setSelectedLead(updated);
+    }
+  }, [leads]);
+
+  useEffect(() => {
+    if (selectedProperty) {
+      const updated = properties.find(p => p.id === selectedProperty.id);
+      if (updated) setSelectedProperty(updated);
+    }
+  }, [properties]);
+
+  useEffect(() => {
     const shouldChange = document.cookie.includes('crm_must_change=true');
     if (shouldChange) {
       setMustChangePassword(true);
@@ -173,9 +187,9 @@ export default function DashboardClient({ initialLeads, initialProperties, token
       </div>
 
       {/* Modals */}
-      {showAddLead && <AddLeadModal token={token} onClose={() => setShowAddLead(false)} onSuccess={() => { setShowAddLead(false); refreshData(); }} />}
-      {showAddProperty && <AddPropertyModal token={token} onClose={() => setShowAddProperty(false)} onSuccess={() => { setShowAddProperty(false); refreshData(); }} />}
-      {showAddDeal && <AddDealModal token={token} leads={leads} properties={properties} onClose={() => setShowAddDeal(false)} onSuccess={() => { setShowAddDeal(false); refreshData(); }} />}
+      {showAddLead && <AddLeadModal token={token} onClose={() => setShowAddLead(false)} onSuccess={() => { refreshData(); setShowAddLead(false); }} />}
+      {showAddProperty && <AddPropertyModal token={token} onClose={() => setShowAddProperty(false)} onSuccess={() => { refreshData(); setShowAddProperty(false); }} />}
+      {showAddDeal && <AddDealModal token={token} leads={leads} properties={properties} onClose={() => setShowAddDeal(false)} onSuccess={() => { refreshData(); setShowAddDeal(false); }} />}
       {selectedLead && <LeadDetailsModal lead={selectedLead} token={token} onClose={() => setSelectedLead(null)} onUpdate={refreshData} />}
       {selectedProperty && <PropertyDetailsModal property={selectedProperty} token={token} onClose={() => setSelectedProperty(null)} onUpdate={refreshData} />}
       
