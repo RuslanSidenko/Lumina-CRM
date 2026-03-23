@@ -109,6 +109,10 @@ func main() {
 
 				// Backup Management
 				adminOnly.POST("/backups/trigger", handlers.TriggerBackup)
+
+				// Automation Management
+				adminOnly.GET("/automation/settings", handlers.GetAutomationSettings)
+				adminOnly.PUT("/automation/settings", handlers.UpdateAutomationSetting)
 			}
 			// Agents can also read field definitions
 			protected.GET("/custom-fields", handlers.GetCustomFields)
@@ -123,8 +127,9 @@ func main() {
 		api.POST("/auth/reset-password", handlers.ResetPassword)
 	}
 
-	// Start automated daily backups in background
+	// Start background processes
 	utils.StartAutoBackup()
+	utils.StartLeadAutomation()
 
 
 	port := os.Getenv("PORT")

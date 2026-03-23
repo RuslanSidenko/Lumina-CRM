@@ -95,6 +95,7 @@ func SeedDatabase() {
 		email VARCHAR(100) UNIQUE NOT NULL,
 		password_hash VARCHAR(255) NOT NULL,
 		role VARCHAR(20) DEFAULT 'agent',
+		last_login_at TIMESTAMP,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);
 	CREATE TABLE IF NOT EXISTS leads (
@@ -194,7 +195,12 @@ func SeedDatabase() {
 		expires_at TIMESTAMP NOT NULL,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);
+	CREATE TABLE IF NOT EXISTS automation_settings (
+		key VARCHAR(100) PRIMARY KEY,
+		value TEXT NOT NULL
+	);
 	`
+
 	
 	var err error
 	_, err = DB.Exec(context.Background(), schema)

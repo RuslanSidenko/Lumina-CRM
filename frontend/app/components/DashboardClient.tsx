@@ -17,6 +17,7 @@ import RoleManagement from './RoleManagement';
 import APIKeyManagement from './APIKeyManagement';
 import ChangePassword from './ChangePassword';
 import BackupManagement from './BackupManagement';
+import AutomationManagement from './AutomationManagement';
 import MandatoryChangePasswordModal from './MandatoryChangePasswordModal';
 import { useEffect } from 'react';
 
@@ -30,7 +31,7 @@ interface DashboardClientProps {
   role: string;
 }
 
-const TABS = ['Leads', 'Properties', 'Deals', 'Insights', 'Fields', 'Team', 'Roles', 'API', 'Settings'];
+const TABS = ['Leads', 'Properties', 'Deals', 'Insights', 'Fields', 'Team', 'Roles', 'API', 'Backups', 'Automation', 'Settings'];
 
 export default function DashboardClient({ initialLeads, initialProperties, token, role }: DashboardClientProps) {
   const [activeTab, setActiveTab] = useState('Leads');

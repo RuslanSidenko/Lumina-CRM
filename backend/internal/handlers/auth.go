@@ -40,6 +40,9 @@ func Login(c *gin.Context) {
 		return
 	}
 
+	// Update last login
+	_, _ = repository.DB.Exec(context.Background(), "UPDATE users SET last_login_at = $1 WHERE id = $2", time.Now(), user.ID)
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": user.ID,
 		"role":    user.Role,
