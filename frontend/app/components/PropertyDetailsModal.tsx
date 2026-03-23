@@ -8,6 +8,7 @@ interface PropertyDetailsModalProps {
   token: string;
   onClose: () => void;
   onUpdate: () => void;
+  notify: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
 const STATUS_CHIP = {
@@ -16,7 +17,7 @@ const STATUS_CHIP = {
   Pending:   'bg-amber-500/15  text-amber-400  border-amber-500/25',
 };
 
-export default function PropertyDetailsModal({ property, token, onClose, onUpdate }: PropertyDetailsModalProps) {
+export default function PropertyDetailsModal({ property, token, onClose, onUpdate, notify }: PropertyDetailsModalProps) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
@@ -85,7 +86,7 @@ export default function PropertyDetailsModal({ property, token, onClose, onUpdat
               ))}
             </div>
 
-            <PropertyFieldsView property={property} token={token} onUpdate={onUpdate} />
+            <PropertyFieldsView property={property} token={token} onUpdate={onUpdate} notify={notify} />
 
             {property.description && (
               <div>

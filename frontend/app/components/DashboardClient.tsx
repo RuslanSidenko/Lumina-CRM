@@ -19,6 +19,7 @@ import ChangePassword from './ChangePassword';
 import BackupManagement from './BackupManagement';
 import AutomationManagement from './AutomationManagement';
 import MandatoryChangePasswordModal from './MandatoryChangePasswordModal';
+import Notification from './Notification';
 import { useEffect } from 'react';
 
 import { Lead, Property } from '../types';
@@ -46,6 +47,11 @@ export default function DashboardClient({ initialLeads, initialProperties, token
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [mustChangePassword, setMustChangePassword] = useState(false);
+  const [notification, setNotification] = useState<{ message: string, type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
+
+  const notify = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'success') => {
+    setNotification({ message, type });
+  };
 
   useEffect(() => {
     if (selectedLead) {
@@ -80,10 +86,11 @@ export default function DashboardClient({ initialLeads, initialProperties, token
       if (resProps.ok) setProperties(await resProps.json());
       if (resAnalytics.ok) setAnalytics(await resAnalytics.json());
 
-      const resPerms = await fetch(`${API_BASE}/api/v1/roles`, { headers }); // We might need a better endpoint for 'my permissions'
-      if (resPerms.ok) {
-        const allPerms = await resPerms.json();
-        setPermissions(allPerms.filter((p: any) => p.role_name === role));
+      if (role === 'admin') {
+        const resPerms = await fetch(`${API_BASE}/api/v1/roles`, { headers });
+        if (resPerms.ok) {
+          setPermissions(await resPerms.json());
+        }
       }
 
       setRefreshTrigger(p => p + 1);
@@ -163,7 +170,7 @@ export default function DashboardClient({ initialLeads, initialProperties, token
 
               {/* Table */}
               <div className="card overflow-hidden">
-                <LeadsTable leads={leads} token={token} role={role} refreshData={refreshData} onLeadClick={setSelectedLead} />
+                <LeadsTable leads={leads} token={token} role={role} refreshData={refreshData} onLeadClick={setSelectedLead} notify={notify} />
               </div>
             </div>
           )}
@@ -180,23 +187,31 @@ export default function DashboardClient({ initialLeads, initialProperties, token
           {activeTab === 'Team'     && (role === 'admin' || permissions.some(p => p.resource === 'users' && p.can_view)) && <UserManagement token={token} />}
           {activeTab === 'Roles'    && role === 'admin' && <RoleManagement token={token} />}
           {activeTab === 'API'      && role === 'admin' && <APIKeyManagement token={token} />}
-          {activeTab === 'Backups'  && role === 'admin' && <BackupManagement token={token} />}
+          {activeTab === 'Backups'  && role === 'admin' && <BackupManagement token={token} notify={notify} />}
           {activeTab === 'Automation' && role === 'admin' && <AutomationManagement token={token} />}
           {activeTab === 'Settings' && <ChangePassword token={token} />}
         </main>
       </div>
 
       {/* Modals */}
-      {showAddLead && <AddLeadModal token={token} onClose={() => setShowAddLead(false)} onSuccess={() => { refreshData(); setShowAddLead(false); }} />}
-      {showAddProperty && <AddPropertyModal token={token} onClose={() => setShowAddProperty(false)} onSuccess={() => { refreshData(); setShowAddProperty(false); }} />}
-      {showAddDeal && <AddDealModal token={token} leads={leads} properties={properties} onClose={() => setShowAddDeal(false)} onSuccess={() => { refreshData(); setShowAddDeal(false); }} />}
-      {selectedLead && <LeadDetailsModal lead={selectedLead} token={token} onClose={() => setSelectedLead(null)} onUpdate={refreshData} />}
-      {selectedProperty && <PropertyDetailsModal property={selectedProperty} token={token} onClose={() => setSelectedProperty(null)} onUpdate={refreshData} />}
+      {showAddLead && <AddLeadModal token={token} onClose={() => setShowAddLead(false)} onSuccess={() => { refreshData(); setShowAddLead(false); notify("Lead added successfully!"); }} />}
+      {showAddProperty && <AddPropertyModal token={token} onClose={() => setShowAddProperty(false)} onSuccess={() => { refreshData(); setShowAddProperty(false); notify("Property listed successfully!"); }} />}
+      {showAddDeal && <AddDealModal token={token} leads={leads} properties={properties} onClose={() => setShowAddDeal(false)} onSuccess={() => { refreshData(); setShowAddDeal(false); notify("Deal created successfully!"); }} />}
+      {selectedLead && <LeadDetailsModal lead={selectedLead} token={token} onClose={() => setSelectedLead(null)} onUpdate={refreshData} notify={notify} />}
+      {selectedProperty && <PropertyDetailsModal property={selectedProperty} token={token} onClose={() => setSelectedProperty(null)} onUpdate={refreshData} notify={notify} />}
       
       {mustChangePassword && (
         <MandatoryChangePasswordModal 
           token={token} 
           onSuccess={() => setMustChangePassword(false)} 
+        />
+      )}
+
+      {notification && (
+        <Notification 
+          message={notification.message} 
+          type={notification.type} 
+          onClose={() => setNotification(null)} 
         />
       )}
     </div>

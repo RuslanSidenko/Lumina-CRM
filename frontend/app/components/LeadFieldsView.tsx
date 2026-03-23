@@ -8,6 +8,7 @@ interface LeadFieldsViewProps {
   lead: Lead;
   token: string;
   onUpdate: () => void;
+  notify: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
 interface CustomFieldDefinition {
@@ -19,7 +20,7 @@ interface CustomFieldDefinition {
   is_required: boolean;
 }
 
-export default function LeadFieldsView({ lead, token, onUpdate }: LeadFieldsViewProps) {
+export default function LeadFieldsView({ lead, token, onUpdate, notify }: LeadFieldsViewProps) {
   const [fields, setFields] = useState<CustomFieldDefinition[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -93,9 +94,14 @@ export default function LeadFieldsView({ lead, token, onUpdate }: LeadFieldsView
       if (res.ok) {
         onUpdate();
         setEditingField(null);
+        notify(`${fieldName.replace('custom_', '')} updated successfully`);
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        notify(errorData.error || "You do not have permission to perform this action.", 'error');
       }
     } catch (err) {
       console.error('Failed to update lead:', err);
+      notify("A network error occurred.", 'error');
     } finally {
       setIsUpdating(false);
     }

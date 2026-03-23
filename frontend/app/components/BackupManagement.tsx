@@ -5,9 +5,10 @@ import { API_BASE } from '../config';
 
 interface BackupManagementProps {
   token: string;
+  notify: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
-export default function BackupManagement({ token }: BackupManagementProps) {
+export default function BackupManagement({ token, notify }: BackupManagementProps) {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ s3_active: false, daily_enabled: false, frequency: '24h', last_status: '', last_time: '' });
   const [message, setMessage] = useState('');
@@ -44,8 +45,9 @@ export default function BackupManagement({ token }: BackupManagementProps) {
       });
       if (res.ok) {
         fetchStatus();
-        setMessage('Backup settings updated!');
-        setTimeout(() => setMessage(''), 3000);
+        notify('Backup settings updated!');
+      } else {
+        notify('Failed to update backup settings', 'error');
       }
     } finally {
       setSaving(false);
@@ -67,12 +69,12 @@ export default function BackupManagement({ token }: BackupManagementProps) {
 
       const data = await res.json();
       if (res.ok) {
-        setMessage(data.message);
+        notify(data.message);
       } else {
-        setError(data.error || 'Backup failed');
+        notify(data.error || 'Backup failed', 'error');
       }
     } catch (err) {
-      setError('Connection error. Check your database and S3 configuration.');
+      notify('Connection error. Check your database and S3 configuration.', 'error');
     } finally {
       setLoading(false);
     }
@@ -138,26 +140,6 @@ export default function BackupManagement({ token }: BackupManagementProps) {
           </div>
         </div>
 
-        {message && (
-          <div className="mx-10 mb-10 animate-fade-in p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 text-emerald-400 text-sm flex items-center justify-center gap-3 backdrop-blur-md">
-            <div className="w-6 h-6 rounded-full bg-emerald-500/10 flex items-center justify-center">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-            </div>
-            <span className="font-semibold">{message}</span>
-          </div>
-        )}
-
-        {error && (
-          <div className="mx-10 mb-10 animate-fade-in p-5 rounded-xl bg-rose-500/5 border border-rose-500/20 text-rose-400 text-sm flex items-start gap-4 backdrop-blur-md">
-            <div className="w-8 h-8 rounded-lg bg-rose-500/10 flex items-center justify-center shrink-0">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-            </div>
-            <div className="space-y-1">
-              <p className="font-black uppercase tracking-wider text-[11px]">Sync Failure Isolated</p>
-              <p className="text-xs opacity-80 font-medium">{error}</p>
-            </div>
-          </div>
-        )}
       </div>
 
       <div className="card-hover p-6 border-n-500/50 bg-n-700/50 backdrop-blur-sm">

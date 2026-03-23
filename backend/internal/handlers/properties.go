@@ -4,6 +4,8 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"reflect"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"real_estate_crm/internal/models"
@@ -136,17 +138,37 @@ func UpdateProperty(c *gin.Context) {
 
 	if hasPerms {
 		perm := perms.(models.RolePermission)
+		var violations []string
 		for _, rf := range perm.RestrictedFields {
-			switch rf {
-			case "title": p.Title = current.Title
-			case "price": p.Price = current.Price
-			case "description": p.Description = current.Description
+			isViolated := false
+			fieldKey := strings.ToLower(rf)
+
+			switch fieldKey {
+			case "title": if p.Title != current.Title { isViolated = true; p.Title = current.Title }
+			case "price": if p.Price != current.Price { isViolated = true; p.Price = current.Price }
+			case "description": if p.Description != current.Description { isViolated = true; p.Description = current.Description }
+			case "status": if p.Status != current.Status { isViolated = true; p.Status = current.Status }
 			}
-			if p.CustomFields != nil && current.CustomFields != nil {
-				if _, restricted := p.CustomFields[rf]; restricted {
-					p.CustomFields[rf] = current.CustomFields[rf]
+
+			if p.CustomFields != nil {
+				for k, newVal := range p.CustomFields {
+					if strings.EqualFold(k, rf) {
+						oldVal, exists := current.CustomFields[k]
+						if !exists || !reflect.DeepEqual(newVal, oldVal) {
+							isViolated = true
+							p.CustomFields[k] = oldVal
+						}
+					}
 				}
 			}
+
+			if isViolated {
+				violations = append(violations, rf)
+			}
+		}
+		if len(violations) > 0 {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions to modify: " + strings.Join(violations, ", ")})
+			return
 		}
 	}
 

@@ -8,6 +8,7 @@ interface PropertyFieldsViewProps {
   property: Property;
   token: string;
   onUpdate: () => void;
+  notify: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
 interface CustomFieldDefinition {
@@ -19,7 +20,7 @@ interface CustomFieldDefinition {
   is_required: boolean;
 }
 
-export default function PropertyFieldsView({ property, token, onUpdate }: PropertyFieldsViewProps) {
+export default function PropertyFieldsView({ property, token, onUpdate, notify }: PropertyFieldsViewProps) {
   const [fields, setFields] = useState<CustomFieldDefinition[]>([]);
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<any>(null);
@@ -80,9 +81,14 @@ export default function PropertyFieldsView({ property, token, onUpdate }: Proper
       if (res.ok) {
         if (onUpdate) onUpdate();
         setEditingField(null);
+        notify(`${fieldName.replace('custom_', '')} updated successfully`);
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        notify(errorData.error || "Failed to update property.", "error");
       }
     } catch (err) {
       console.error('Failed to update property:', err);
+      notify("Network error occurred.", "error");
     } finally {
       setIsUpdating(false);
     }

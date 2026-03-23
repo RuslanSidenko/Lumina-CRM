@@ -8,6 +8,7 @@ interface LeadsTableProps {
   role: string;
   refreshData: () => void;
   onLeadClick: (lead: Lead) => void;
+  notify: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -18,7 +19,7 @@ const STATUS_STYLES: Record<string, string> = {
   Lost: 'badge-red',
 };
 
-export default function LeadsTable({ leads, token, role, refreshData, onLeadClick }: LeadsTableProps) {
+export default function LeadsTable({ leads, token, role, refreshData, onLeadClick, notify }: LeadsTableProps) {
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState<'name' | 'status' | 'created_at'>('created_at');
 
@@ -29,8 +30,13 @@ export default function LeadsTable({ leads, token, role, refreshData, onLeadClic
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (res.ok) refreshData();
-    else alert('Failed to delete lead. Admin privileges required.');
+    if (res.ok) {
+        refreshData();
+        notify("Lead deleted successfully", "success");
+    } else {
+        const err = await res.json().catch(() => ({}));
+        notify(err.error || "Failed to delete lead. You may not have administrative privileges.", "error");
+    }
   };
 
   const filtered = leads

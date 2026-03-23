@@ -10,6 +10,7 @@ interface LeadDetailsModalProps {
   token: string;
   onClose: () => void;
   onUpdate: () => void;
+  notify: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -20,7 +21,7 @@ const STATUS_STYLES: Record<string, string> = {
   Lost:      'badge-red',
 };
 
-export default function LeadDetailsModal({ lead, token, onClose, onUpdate }: LeadDetailsModalProps) {
+export default function LeadDetailsModal({ lead, token, onClose, onUpdate, notify }: LeadDetailsModalProps) {
   const initials = lead.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
   return (
@@ -66,7 +67,7 @@ export default function LeadDetailsModal({ lead, token, onClose, onUpdate }: Lea
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-8">
-          <LeadFieldsView lead={lead} token={token} onUpdate={onUpdate} />
+          <LeadFieldsView lead={lead} token={token} onUpdate={onUpdate} notify={notify} />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4 border-t border-n-500/40">
             <InteractionLog leadId={lead.id} token={token} />
             <TaskManager leadId={lead.id} token={token} />
