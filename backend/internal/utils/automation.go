@@ -23,9 +23,9 @@ func StartLeadAutomation() {
 func processUnassignedLeads() {
 	// 1. Get Automation Setting
 	var algorithm string
-	err := repository.DB.QueryRow(context.Background(), 
+	err := repository.DB.QueryRow(context.Background(),
 		"SELECT value FROM automation_settings WHERE key = 'lead_assignment_algorithm'").Scan(&algorithm)
-	
+
 	if err != nil || algorithm == "off" || algorithm == "" {
 		return
 	}
@@ -65,9 +65,9 @@ func findTargetUser(algorithm string) int {
 
 	// 1. Check if we should prioritize active users
 	var prioritizeActive string
-	_ = repository.DB.QueryRow(context.Background(), 
+	_ = repository.DB.QueryRow(context.Background(),
 		"SELECT value FROM automation_settings WHERE key = 'prioritize_active_users'").Scan(&prioritizeActive)
-	
+
 	activeWindow := time.Now().Add(-24 * time.Hour)
 	userFilter := "WHERE 1=1"
 	if prioritizeActive == "true" {
@@ -98,7 +98,9 @@ func findTargetUser(algorithm string) int {
 			rows.Close()
 		}
 
-		if len(users) == 0 { return 0 }
+		if len(users) == 0 {
+			return 0
+		}
 
 		// Get last assigned
 		var lastIDStr string
@@ -114,8 +116,8 @@ func findTargetUser(algorithm string) int {
 			}
 		}
 		userID = users[targetIndex]
-		_, _ = repository.DB.Exec(context.Background(), 
-			"INSERT INTO automation_settings (key, value) VALUES ('last_assigned_user_id', $1) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value", 
+		_, _ = repository.DB.Exec(context.Background(),
+			"INSERT INTO automation_settings (key, value) VALUES ('last_assigned_user_id', $1) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
 			strconv.Itoa(userID))
 
 	case "least_loaded":
@@ -128,10 +130,10 @@ func findTargetUser(algorithm string) int {
 			ORDER BY COUNT(l.id) ASC LIMIT 1`, userFilter)
 
 		err := repository.DB.QueryRow(context.Background(), query).Scan(&userID)
-		
+
 		// Fallback if no active users
 		if err != nil && prioritizeActive == "true" {
-			_ = repository.DB.QueryRow(context.Background(), 
+			_ = repository.DB.QueryRow(context.Background(),
 				`SELECT u.id FROM users u 
 				 LEFT JOIN leads l ON u.id = l.assigned_to 
 				 GROUP BY u.id 
