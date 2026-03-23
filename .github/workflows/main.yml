@@ -3,14 +3,6 @@ name: Build & Push Docker Images
 on:
   push:
     branches: [main]
-    # Only trigger workflow if files in backend or frontend changed
-    paths:
-      - 'backend/**'
-      - 'frontend/**'
-      - '.github/workflows/**'
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build:
@@ -26,17 +18,28 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
 
-      # Build & push backend only if there are changes
+      # Check which paths changed
+      - name: Filter changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            frontend:
+              - 'frontend/**'
+
+      # Build backend if changed
       - name: Build & Push Backend
-        if: github.event_name == 'push' && contains(join(github.event.head_commit.modified, ''), 'backend/')
+        if: steps.changes.outputs.backend == 'true'
         run: |
           echo "Building backend..."
           docker build --cache-from ghcr.io/ruslansidenko/lumina-crm/backend:latest -t ghcr.io/ruslansidenko/lumina-crm/backend:latest ./backend
           docker push ghcr.io/ruslansidenko/lumina-crm/backend:latest
 
-      # Build & push frontend only if there are changes
+      # Build frontend if changed
       - name: Build & Push Frontend
-        if: github.event_name == 'push' && contains(join(github.event.head_commit.modified, ''), 'frontend/')
+        if: steps.changes.outputs.frontend == 'true'
         run: |
           echo "Building frontend..."
           docker build --cache-from ghcr.io/ruslansidenko/lumina-crm/frontend:latest -t ghcr.io/ruslansidenko/lumina-crm/frontend:latest ./frontend
