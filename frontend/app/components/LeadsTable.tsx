@@ -42,7 +42,7 @@ export default function LeadsTable({ leads, token, role, refreshData, onLeadClic
   const filtered = leads
     .filter(l =>
       l.name.toLowerCase().includes(search.toLowerCase()) ||
-      l.email.toLowerCase().includes(search.toLowerCase()) ||
+      (l.email && l.email.toLowerCase().includes(search.toLowerCase())) ||
       l.phone.includes(search)
     )
     .sort((a, b) => {
@@ -117,7 +117,7 @@ export default function LeadsTable({ leads, token, role, refreshData, onLeadClic
                     <span className="font-semibold text-n-50 group-hover:text-accent-400 transition-colors">{lead.name}</span>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-n-300">{lead.email}</td>
+                <td className="px-4 py-3 text-n-300">{lead.email || <span className="text-n-500 italic">No email</span>}</td>
                 <td className="px-4 py-3 text-n-300 font-mono text-xs">{lead.phone}</td>
                 <td className="px-4 py-3">
                   <span className={STATUS_STYLES[lead.status] || 'badge badge-blue'}>{lead.status}</span>
@@ -127,13 +127,15 @@ export default function LeadsTable({ leads, token, role, refreshData, onLeadClic
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
-                    <a
-                      href={`mailto:${lead.email}`}
-                      onClick={e => e.stopPropagation()}
-                      className="btn-ghost py-1 px-2 text-xs"
-                    >
-                      Email
-                    </a>
+                    {lead.email && (
+                      <a
+                        href={`mailto:${lead.email}`}
+                        onClick={e => e.stopPropagation()}
+                        className="btn-ghost py-1 px-2 text-xs"
+                      >
+                        Email
+                      </a>
+                    )}
                     {role === 'admin' && (
                       <button onClick={e => deleteLead(lead.id, e)} className="btn-ghost py-1 px-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10">
                         Delete

@@ -44,7 +44,7 @@ type Property struct {
 type CreateLeadRequest struct {
 	Name       string `json:"name" binding:"required"`
 	Phone      string `json:"phone" binding:"required"`
-	Email      string `json:"email" binding:"required,email"`
+	Email      string `json:"email" binding:"omitempty,email"`
 	Status     string `json:"status" binding:"required"`
 	AssignedTo   *int                   `json:"assigned_to"`
 	Source       string                 `json:"source"`

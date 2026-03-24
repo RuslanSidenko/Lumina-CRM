@@ -10,7 +10,7 @@ export interface Lead {
   id: number;
   name: string;
   phone: string;
-  email: string;
+  email?: string;
   status: string;
   assigned_to?: number | null;
   custom_fields?: Record<string, any>;

@@ -102,7 +102,7 @@ func SeedDatabase() {
 		id SERIAL PRIMARY KEY,
 		name VARCHAR(100) NOT NULL,
 		phone VARCHAR(20) NOT NULL,
-		email VARCHAR(100) NOT NULL,
+		email VARCHAR(100),
 		status VARCHAR(20) NOT NULL,
 		assigned_to INTEGER REFERENCES users(id) ON DELETE SET NULL,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -266,6 +266,9 @@ func SeedDatabase() {
 	}
 	if _, err := DB.Exec(context.Background(), "ALTER TABLE leads ADD COLUMN IF NOT EXISTS source VARCHAR(50) DEFAULT 'manual'"); err != nil {
 		log.Printf("Migration error (leads source): %v", err)
+	}
+	if _, err := DB.Exec(context.Background(), "ALTER TABLE leads ALTER COLUMN email DROP NOT NULL"); err != nil {
+		log.Printf("Migration error (leads email optional): %v", err)
 	}
 	if _, err := DB.Exec(context.Background(), "ALTER TABLE leads ADD COLUMN IF NOT EXISTS assigned_to INTEGER REFERENCES users(id) ON DELETE SET NULL"); err != nil {
 		log.Printf("Migration error (leads assigned_to): %v", err)
