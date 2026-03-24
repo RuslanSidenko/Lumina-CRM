@@ -14,11 +14,12 @@ export async function loginAction(username: string, password: string) {
     
     if (res.ok) {
       const cookieStore = await cookies();
-      cookieStore.set('crm_token', data.token, { path: '/' });
-      cookieStore.set('crm_role', data.user.role, { path: '/' });
+      const maxAge = 60 * 60 * 24 * 30; // 30 days — industry standard persistent session
+      cookieStore.set('crm_token', data.token, { path: '/', maxAge });
+      cookieStore.set('crm_role', data.user.role, { path: '/', maxAge });
       
       if (data.user.must_change_password) {
-        cookieStore.set('crm_must_change', 'true', { path: '/' });
+        cookieStore.set('crm_must_change', 'true', { path: '/', maxAge });
       } else {
         cookieStore.delete('crm_must_change');
       }
