@@ -22,7 +22,7 @@ export default function Notification({ message, type, onClose, duration = 5000 }
     }, duration);
 
     return () => clearTimeout(timer);
-  }, [onClose, duration]);
+  }, [onClose, duration, message]);
 
   const STYLES = {
     success: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-lg shadow-emerald-500/5',

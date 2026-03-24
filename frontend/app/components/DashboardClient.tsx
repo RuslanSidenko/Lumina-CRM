@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Sidebar from '@/app/components/Sidebar';
 import LeadsTable from './LeadsTable';
 import AddLeadModal from '@/app/components/AddLeadModal';
@@ -20,7 +20,6 @@ import BackupManagement from './BackupManagement';
 import AutomationManagement from './AutomationManagement';
 import MandatoryChangePasswordModal from './MandatoryChangePasswordModal';
 import Notification from './Notification';
-import { useEffect } from 'react';
 
 import { Lead, Property } from '../types';
 import { API_BASE } from '../config';
@@ -109,6 +108,10 @@ export default function DashboardClient({ initialLeads, initialProperties, token
   const activeLeads = leads.filter(l => l.status === 'Active').length;
   const qualifiedLeads = leads.filter(l => l.status === 'Qualified').length;
   const newLeads = leads.filter(l => l.status === 'New').length;
+
+  const closeNotification = useCallback(() => {
+    setNotification(null);
+  }, []);
 
   return (
     <div className="flex h-screen w-full bg-n-800 overflow-hidden">
@@ -211,7 +214,7 @@ export default function DashboardClient({ initialLeads, initialProperties, token
         <Notification 
           message={notification.message} 
           type={notification.type} 
-          onClose={() => setNotification(null)} 
+          onClose={closeNotification} 
         />
       )}
     </div>
