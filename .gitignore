@@ -14,3 +14,4 @@ volumes/
 backend/api
 backend/main
 backend/*.exe
+backend/dev_app
