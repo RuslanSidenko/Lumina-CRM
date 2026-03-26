@@ -134,7 +134,7 @@ func main() {
 
 	// Start background processes
 	utils.StartAutoBackup()
-	utils.StartLeadAutomation()
+	utils.StartAutomation()
 
 
 	port := os.Getenv("PORT")

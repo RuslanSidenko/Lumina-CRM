@@ -5,23 +5,29 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"real_estate_crm/internal/repository"
 )
 
-func StartLeadAutomation() {
+func StartAutomation() {
 	go func() {
 		for {
-			log.Println("Checking for unassigned leads...")
+			log.Println("Background Automation: Checking for unassigned records...")
 			processUnassignedLeads()
+			processUnassignedDeals()
 			time.Sleep(5 * time.Minute)
 		}
 	}()
 }
 
+// StartLeadAutomation is kept for backward compatibility if needed elsewhere, but calls StartAutomation
+func StartLeadAutomation() {
+	StartAutomation()
+}
+
 func processUnassignedLeads() {
-	// 1. Get Automation Setting
 	var algorithm string
 	err := repository.DB.QueryRow(context.Background(),
 		"SELECT value FROM automation_settings WHERE key = 'lead_assignment_algorithm'").Scan(&algorithm)
@@ -30,7 +36,6 @@ func processUnassignedLeads() {
 		return
 	}
 
-	// 2. Find unassigned leads
 	rows, err := repository.DB.Query(context.Background(), "SELECT id FROM leads WHERE assigned_to IS NULL")
 	if err != nil {
 		return
@@ -52,7 +57,7 @@ func processUnassignedLeads() {
 	log.Printf("Found %d unassigned leads. Assigning using %s...", len(leadIDs), algorithm)
 
 	for _, leadID := range leadIDs {
-		userID := findTargetUser(algorithm)
+		userID := findTargetUser(algorithm, "leads")
 		if userID != 0 {
 			_, _ = repository.DB.Exec(context.Background(), "UPDATE leads SET assigned_to = $1 WHERE id = $2", userID, leadID)
 			log.Printf("Assigned lead %d to user %d", leadID, userID)
@@ -60,24 +65,82 @@ func processUnassignedLeads() {
 	}
 }
 
-func findTargetUser(algorithm string) int {
+func processUnassignedDeals() {
+	var algorithm string
+	err := repository.DB.QueryRow(context.Background(),
+		"SELECT value FROM automation_settings WHERE key = 'deal_assignment_algorithm'").Scan(&algorithm)
+
+	if err != nil || algorithm == "off" || algorithm == "" {
+		return
+	}
+
+	rows, err := repository.DB.Query(context.Background(), "SELECT id FROM deals WHERE agent_id IS NULL")
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+
+	var dealIDs []int
+	for rows.Next() {
+		var id int
+		if err := rows.Scan(&id); err == nil {
+			dealIDs = append(dealIDs, id)
+		}
+	}
+
+	if len(dealIDs) == 0 {
+		return
+	}
+
+	log.Printf("Found %d unassigned deals. Assigning using %s...", len(dealIDs), algorithm)
+
+	for _, dealID := range dealIDs {
+		userID := findTargetUser(algorithm, "deals")
+		if userID != 0 {
+			_, _ = repository.DB.Exec(context.Background(), "UPDATE deals SET agent_id = $1 WHERE id = $2", userID, dealID)
+			log.Printf("Assigned deal %d to user %d", dealID, userID)
+		}
+	}
+}
+
+func findTargetUser(algorithm string, resource string) int {
 	var userID int
 
-	// 1. Check if we should prioritize active users
+	// 1. Get Settings
 	var prioritizeActive string
 	_ = repository.DB.QueryRow(context.Background(),
 		"SELECT value FROM automation_settings WHERE key = 'prioritize_active_users'").Scan(&prioritizeActive)
 
-	activeWindow := time.Now().Add(-24 * time.Hour)
-	userFilter := "WHERE 1=1"
-	if prioritizeActive == "true" {
-		// Only consider users active in the last 24h
-		userFilter = fmt.Sprintf("WHERE last_login_at >= '%s'", activeWindow.Format("2006-01-02 15:04:05"))
+	var rolesStr string
+	roleKey := "lead_assignment_roles"
+	if resource == "deals" {
+		roleKey = "deal_assignment_roles"
 	}
+	_ = repository.DB.QueryRow(context.Background(),
+		"SELECT value FROM automation_settings WHERE key = $1", roleKey).Scan(&rolesStr)
+
+	// 2. Build Filter
+	activeWindow := time.Now().Add(-24 * time.Hour)
+	filters := []string{"1=1"}
+	
+	if prioritizeActive == "true" {
+		filters = append(filters, fmt.Sprintf("last_login_at >= '%s'", activeWindow.Format("2006-01-02 15:04:05")))
+	}
+
+	if rolesStr != "" && rolesStr != "all" {
+		roles := strings.Split(rolesStr, ",")
+		var quotedRoles []string
+		for _, r := range roles {
+			quotedRoles = append(quotedRoles, fmt.Sprintf("'%s'", strings.TrimSpace(r)))
+		}
+		filters = append(filters, fmt.Sprintf("role IN (%s)", strings.Join(quotedRoles, ",")))
+	}
+
+	userFilter := "WHERE " + strings.Join(filters, " AND ")
 
 	switch algorithm {
 	case "round_robin":
-		// Get eligible users based on filter
+		// Get eligible users
 		rows, _ := repository.DB.Query(context.Background(), fmt.Sprintf("SELECT id FROM users %s ORDER BY id ASC", userFilter))
 		var users []int
 		for rows.Next() {
@@ -87,24 +150,18 @@ func findTargetUser(algorithm string) int {
 		}
 		rows.Close()
 
-		// Fallback if no active users found but priority was on
-		if len(users) == 0 && prioritizeActive == "true" {
-			rows, _ = repository.DB.Query(context.Background(), "SELECT id FROM users ORDER BY id ASC")
-			for rows.Next() {
-				var id int
-				rows.Scan(&id)
-				users = append(users, id)
-			}
-			rows.Close()
-		}
-
 		if len(users) == 0 {
 			return 0
 		}
 
-		// Get last assigned
+		// Get last assigned for this resource
+		lastAssignedKey := "last_assigned_lead_user_id"
+		if resource == "deals" {
+			lastAssignedKey = "last_assigned_deal_user_id"
+		}
+		
 		var lastIDStr string
-		_ = repository.DB.QueryRow(context.Background(), "SELECT value FROM automation_settings WHERE key = 'last_assigned_user_id'").Scan(&lastIDStr)
+		_ = repository.DB.QueryRow(context.Background(), "SELECT value FROM automation_settings WHERE key = $1", lastAssignedKey).Scan(&lastIDStr)
 		lastID, _ := strconv.Atoi(lastIDStr)
 
 		// Find next
@@ -116,32 +173,29 @@ func findTargetUser(algorithm string) int {
 			}
 		}
 		userID = users[targetIndex]
+		
 		_, _ = repository.DB.Exec(context.Background(),
-			"INSERT INTO automation_settings (key, value) VALUES ('last_assigned_user_id', $1) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
-			strconv.Itoa(userID))
+			"INSERT INTO automation_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+			lastAssignedKey, strconv.Itoa(userID))
 
 	case "least_loaded":
-		// User with fewest leads among eligible users
+		// User with fewest records among eligible users
+		table := "leads"
+		col := "assigned_to"
+		if resource == "deals" {
+			table = "deals"
+			col = "agent_id"
+		}
+
 		query := fmt.Sprintf(`
 			SELECT u.id FROM users u 
-			LEFT JOIN leads l ON u.id = l.assigned_to 
+			LEFT JOIN %s r ON u.id = r.%s 
 			%s
 			GROUP BY u.id 
-			ORDER BY COUNT(l.id) ASC LIMIT 1`, userFilter)
+			ORDER BY COUNT(r.id) ASC LIMIT 1`, table, col, userFilter)
 
-		err := repository.DB.QueryRow(context.Background(), query).Scan(&userID)
-
-		// Fallback if no active users
-		if err != nil && prioritizeActive == "true" {
-			_ = repository.DB.QueryRow(context.Background(),
-				`SELECT u.id FROM users u 
-				 LEFT JOIN leads l ON u.id = l.assigned_to 
-				 GROUP BY u.id 
-				 ORDER BY COUNT(l.id) ASC LIMIT 1`).Scan(&userID)
-		}
+		_ = repository.DB.QueryRow(context.Background(), query).Scan(&userID)
 	}
 
 	return userID
 }
-
-// check

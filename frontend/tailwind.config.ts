@@ -24,11 +24,11 @@ const config: Config = {
           700: '#1c1d26',   // card bg
           600: '#252736',   // elevated card
           500: '#2e3044',   // border/separator
-          400: '#3b3e55',   // muted border
-          300: '#6b7280',   // muted text
-          200: '#9ca3af',   // secondary text
-          100: '#d1d5db',   // primary text
-          50:  '#f9fafb',   // white text
+          400: '#94a3b8',   // muted text (was too dark)
+          300: '#cbd5e1',   // secondary text
+          200: '#e2e8f0',   // primary text
+          100: '#f1f5f9',   // bright text
+          50:  '#ffffff',   // white text
         },
       },
       fontFamily: {
