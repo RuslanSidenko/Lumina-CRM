@@ -81,6 +81,13 @@ export default function DashboardClient({ initialLeads, initialProperties, token
         fetch(`${API_BASE}/api/v1/properties`, { headers }),
         fetch(`${API_BASE}/api/v1/analytics`, { headers }),
       ]);
+
+      if (resLeads.status === 401 || resProps.status === 401 || resAnalytics.status === 401) {
+        // Attempting to refresh by reloading page (SSR will handle it via getAccessToken)
+        window.location.reload();
+        return;
+      }
+
       if (resLeads.ok) setLeads(await resLeads.json());
       if (resProps.ok) setProperties(await resProps.json());
       if (resAnalytics.ok) setAnalytics(await resAnalytics.json());
@@ -93,7 +100,13 @@ export default function DashboardClient({ initialLeads, initialProperties, token
       }
 
       setRefreshTrigger(p => p + 1);
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      console.error(e); 
+      // Basic 401 detection if not caught above
+      if (e instanceof Error && e.message.includes('401')) {
+        window.location.reload();
+      }
+    }
   };
 
   const handleAdd = () => {

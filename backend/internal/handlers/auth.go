@@ -2,6 +2,9 @@ package handlers
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -17,6 +20,14 @@ import (
 type LoginRequest struct {
 	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
+}
+
+func generateRefreshToken() (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
 }
 
 func Login(c *gin.Context) {
@@ -56,26 +67,92 @@ func Login(c *gin.Context) {
 	// Update last login
 	_, _ = repository.DB.Exec(context.Background(), "UPDATE users SET last_login_at = $1 WHERE id = $2", time.Now(), user.ID)
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+	// Access Token (Short-lived: 15 minutes)
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": user.ID,
 		"role":    user.Role,
-		"exp":     time.Now().Add(time.Hour * 24 * 30).Unix(),
+		"exp":     time.Now().Add(time.Minute * 15).Unix(),
 	})
 
-	tokenString, err := token.SignedString(middleware.JwtSecret)
+	accessTokenString, err := accessToken.SignedString(middleware.JwtSecret)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate access token"})
+		return
+	}
+
+	// Refresh Token (Long-lived: 7 days)
+	refreshTokenString, err := generateRefreshToken()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate refresh token"})
+		return
+	}
+
+	refreshExp := time.Now().Add(time.Hour * 24 * 7)
+	_, err = repository.DB.Exec(context.Background(), 
+		"INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)", 
+		user.ID, refreshTokenString, refreshExp)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to store refresh token"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"token": tokenString,
+		"token":         accessTokenString,
+		"refresh_token": refreshTokenString,
 		"user": gin.H{
 			"id":                   user.ID,
 			"name":                 user.Name,
 			"role":                 user.Role,
 			"must_change_password": req.Password == "admin" || req.Password == "password",
 		},
+	})
+}
+
+func RefreshToken(c *gin.Context) {
+	var req struct {
+		RefreshToken string `json:"refresh_token" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var userID int
+	var role string
+	var expiresAt time.Time
+
+	err := repository.DB.QueryRow(context.Background(), 
+		`SELECT r.user_id, u.role, r.expires_at FROM refresh_tokens r 
+		 JOIN users u ON r.user_id = u.id 
+		 WHERE r.token = $1`, req.RefreshToken).Scan(&userID, &role, &expiresAt)
+
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid refresh token"})
+		return
+	}
+
+	if time.Now().After(expiresAt) {
+		// Cleanup expired token
+		_, _ = repository.DB.Exec(context.Background(), "DELETE FROM refresh_tokens WHERE token = $1", req.RefreshToken)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Refresh token expired"})
+		return
+	}
+
+	// Generate new access token
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": userID,
+		"role":    role,
+		"exp":     time.Now().Add(time.Minute * 15).Unix(),
+	})
+
+	accessTokenString, err := accessToken.SignedString(middleware.JwtSecret)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate access token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"token": accessTokenString,
 	})
 }
 
@@ -127,6 +204,9 @@ func ChangePassword(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password"})
 		return
 	}
+
+	// Optionally revoke all refresh tokens on password change
+	_, _ = repository.DB.Exec(context.Background(), "DELETE FROM refresh_tokens WHERE user_id = $1", userID)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Password changed successfully"})
 }

@@ -37,13 +37,31 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
+	// Rate Limiters
+	loginLimiter := middleware.RateLimiter(1.0/60.0, 5) // 1 request per minute, burst of 5
+	publicLimiter := middleware.RateLimiter(5, 10)     // 5 requests per second, burst of 10
+
 	api := r.Group("/api/v1")
 	{
-		// Public Routes
-		api.POST("/auth/login", handlers.Login)
-		api.POST("/public/leads", middleware.RequireAPIKey(), handlers.CreatePublicLead)
-		api.POST("/public/deals", middleware.RequireAPIKey(), handlers.CreatePublicDeal)
-		api.POST("/public/properties", middleware.RequireAPIKey(), handlers.CreatePublicProperty)
+		// Public Auth Routes
+		auth := api.Group("/auth")
+		auth.Use(loginLimiter)
+		{
+			auth.POST("/login", handlers.Login)
+			auth.POST("/refresh", handlers.RefreshToken)
+			auth.POST("/forgot-password", handlers.ForgotPassword)
+			auth.POST("/reset-password", handlers.ResetPassword)
+		}
+
+		// Public Resources (API Key Required + Rate Limited)
+		public := api.Group("/public")
+		public.Use(middleware.RequireAPIKey())
+		public.Use(publicLimiter)
+		{
+			public.POST("/leads", handlers.CreatePublicLead)
+			public.POST("/deals", handlers.CreatePublicDeal)
+			public.POST("/properties", handlers.CreatePublicProperty)
+		}
 
 		// Evaluated against Auth JWT token
 		protected := api.Group("/")
@@ -126,10 +144,6 @@ func main() {
 		// Public Invitation validation and fulfillment
 		api.GET("/invitations/:token", handlers.GetInvitation)
 		api.POST("/invitations/fulfill", handlers.FulfillInvitation)
-
-		// Password Reset
-		api.POST("/auth/forgot-password", handlers.ForgotPassword)
-		api.POST("/auth/reset-password", handlers.ResetPassword)
 	}
 
 	// Start background processes
