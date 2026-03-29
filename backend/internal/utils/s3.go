@@ -13,52 +13,109 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-var s3Client *s3.Client
-var bucketName string
+var globalS3Client *s3.Client
+var minioClient *s3.Client
+
+var globalBucketName string
+var minioBucketName string
 
 func InitS3() {
+	// Initialize Global Cloud S3 (e.g. R2)
+	initGlobalS3()
+	// Initialize Local MinIO (with smart defaults)
+	initMinio()
+}
+
+func initGlobalS3() {
 	endpoint := os.Getenv("S3_ENDPOINT")
 	accessKey := os.Getenv("S3_ACCESS_KEY")
 	secretKey := os.Getenv("S3_SECRET_KEY")
-	bucketName = os.Getenv("S3_BUCKET")
+	globalBucketName = os.Getenv("S3_BUCKET")
 	region := os.Getenv("S3_REGION")
 
 	if endpoint == "" || accessKey == "" || secretKey == "" {
-		fmt.Println("S3 configuration missing, media uploads will fail.")
 		return
 	}
 
 	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-		return aws.Endpoint{
-			URL:               endpoint,
-			HostnameImmutable: true,
-		}, nil
+		return aws.Endpoint{URL: endpoint, HostnameImmutable: true}, nil
 	})
 
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
+	cfg, _ := config.LoadDefaultConfig(context.TODO(),
 		config.WithRegion(region),
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")),
 		config.WithEndpointResolverWithOptions(customResolver),
 	)
-	if err != nil {
-		fmt.Printf("Unable to load SDK config, %v\n", err)
-		return
-	}
-
-	s3Client = s3.NewFromConfig(cfg)
-	fmt.Println("S3/R2 client initialized successfully.")
+	globalS3Client = s3.NewFromConfig(cfg)
+	fmt.Println("Global S3 client initialized.")
 }
 
+func initMinio() {
+	// SMART DEFAULTS (No .env required for local dev)
+	endpoint := os.Getenv("MINIO_ENDPOINT")
+	if endpoint == "" {
+		// Use standard port 9550 (as per docker-compose)
+		// We use localhost if on host, or 'minio' jika dalam docker network
+		endpoint = "http://localhost:9550" 
+	}
+	
+	accessKey := os.Getenv("MINIO_ACCESS_KEY")
+	if accessKey == "" { accessKey = "minioadmin" }
+
+	secretKey := os.Getenv("MINIO_SECRET_KEY")
+	if secretKey == "" { secretKey = "minioadmin" }
+
+	minioBucketName = os.Getenv("MINIO_BUCKET")
+	if minioBucketName == "" { minioBucketName = "whatsapp" }
+
+	region := os.Getenv("MINIO_REGION")
+	if region == "" { region = "us-east-1" }
+
+	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
+		return aws.Endpoint{URL: endpoint, HostnameImmutable: true}, nil
+	})
+
+	cfg, _ := config.LoadDefaultConfig(context.TODO(),
+		config.WithRegion(region),
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")),
+		config.WithEndpointResolverWithOptions(customResolver),
+	)
+	minioClient = s3.NewFromConfig(cfg)
+	fmt.Printf("MinIO client initialized with endpoint %s\n", endpoint)
+
+	// Auto-create bucket
+	_, _ = minioClient.CreateBucket(context.Background(), &s3.CreateBucketInput{
+		Bucket: aws.String(minioBucketName),
+	})
+}
+
+// UploadToS3 uploads to the provider specified by WHATSAPP_STORAGE_PROVIDER (default: minio)
 func UploadToS3(ctx context.Context, reader io.Reader, filename string, contentType string) (string, error) {
-	if s3Client == nil {
-		return "", fmt.Errorf("S3 client not initialized")
+	provider := os.Getenv("WHATSAPP_STORAGE_PROVIDER")
+	
+	if provider == "s3" && globalS3Client != nil {
+		fmt.Println("Using Cloud S3 for storage.")
+		return uploadTo(ctx, globalS3Client, globalBucketName, os.Getenv("S3_ENDPOINT"), reader, filename, contentType)
 	}
 
-	// Create a unique key
+	if minioClient != nil {
+		fmt.Println("Using local MinIO for storage.")
+		
+		// If using Minio by default, we use the local endpoint from env or default
+		endpoint := os.Getenv("MINIO_ENDPOINT")
+		if endpoint == "" { endpoint = "http://localhost:9550" }
+
+		return uploadTo(ctx, minioClient, minioBucketName, endpoint, reader, filename, contentType)
+	}
+
+	return "", fmt.Errorf("no storage provider configured or available")
+}
+
+func uploadTo(ctx context.Context, client *s3.Client, bucket, endpointURL string, reader io.Reader, filename, contentType string) (string, error) {
 	key := fmt.Sprintf("whatsapp/%d_%s", time.Now().Unix(), filename)
 
-	_, err := s3Client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:      aws.String(bucketName),
+	_, err := client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket:      aws.String(bucket),
 		Key:         aws.String(key),
 		Body:        reader,
 		ContentType: aws.String(contentType),
@@ -67,9 +124,5 @@ func UploadToS3(ctx context.Context, reader io.Reader, filename string, contentT
 		return "", err
 	}
 
-	// Construct the public URL (this varies by provider, but usually it's [endpoint]/[bucket]/[key]
-	// reflect Cloudflare R2 structure if applicable: https://[accountid].r2.cloudflarestorage.com/[bucket]/[key]
-	// Or often a custom domain. We'll return a path that the frontend can use.
-	// For R2, sometimes the endpoint itself is the base.
-	return fmt.Sprintf("%s/%s/%s", os.Getenv("S3_ENDPOINT"), bucketName, key), nil
+	return fmt.Sprintf("%s/%s/%s", endpointURL, bucket, key), nil
 }

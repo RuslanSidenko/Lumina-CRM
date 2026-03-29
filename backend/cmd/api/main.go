@@ -162,7 +162,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "8090"
 	}
 
 	fmt.Printf("Starting Gin backend API on :%s\n", port)
