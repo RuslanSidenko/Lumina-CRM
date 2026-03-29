@@ -75,74 +75,105 @@ export default function WhatsAppChat({ lead }: WhatsAppChatProps) {
     }
   };
 
-  if (loading) return <div className="p-4 text-center">Loading conversation...</div>;
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center p-12 space-y-3 opacity-50">
+      <div className="w-6 h-6 border-2 border-accent-500/30 border-t-accent-500 rounded-full animate-spin"></div>
+      <p className="text-xs font-medium tracking-wide uppercase">Syncing conversation...</p>
+    </div>
+  );
 
   return (
-    <div className="flex flex-col h-[500px] bg-slate-50 rounded-lg shadow-inner">
+    <div className="flex flex-col h-[600px] border border-n-500/40 rounded-2xl bg-n-900/20 overflow-hidden backdrop-blur-sm">
       {/* Header */}
-      <div className="p-3 bg-white border-b flex justify-between items-center rounded-t-lg">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-bold">
-            {lead.name.charAt(0)}
+      <div className="shrink-0 p-4 border-b border-n-500/40 bg-n-800/40 flex justify-between items-center group">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <div className="w-10 h-10 rounded-xl bg-accent-500/10 border border-accent-500/20 flex items-center justify-center text-accent-400 font-bold">
+              {lead.name.charAt(0)}
+            </div>
+            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-n-900"></div>
           </div>
           <div>
-            <h3 className="font-semibold text-sm">{lead.phone}</h3>
-            <p className="text-[10px] text-gray-500">WhatsApp Business</p>
+            <h3 className="font-bold text-n-50 text-sm tracking-tight">{lead.phone}</h3>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="text-[10px] font-bold text-n-400 uppercase tracking-widest">Connected via WhatsApp</span>
+            </div>
           </div>
         </div>
         <button 
           onClick={fetchMessages}
-          className="text-xs text-blue-600 hover:underline"
+          className="btn-ghost p-2 opacity-0 group-hover:opacity-100 transition-opacity"
+          title="Refresh messages"
         >
-          Refresh
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
         </button>
       </div>
 
-      {/* Messages */}
+      {/* Messages Area */}
       <div 
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#e5ddd5]"
-        style={{ backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")' }}
+        className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide bg-gradient-to-b from-transparent to-n-900/10"
       >
         {messages.length === 0 ? (
-          <div className="text-center py-10 opacity-50 text-sm">No messages yet with this lead.</div>
+          <div className="h-full flex flex-col items-center justify-center space-y-3 opacity-30">
+            <div className="w-12 h-12 rounded-full border-2 border-dashed border-n-500 flex items-center justify-center">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </div>
+            <p className="text-xs font-medium uppercase tracking-widest">No conversation history yet</p>
+          </div>
         ) : (
           messages.map((m) => (
             <div 
               key={m.id} 
-              className={`flex ${m.direction === 'outgoing' ? 'justify-end' : 'justify-start'}`}
+              className={`flex flex-col ${m.direction === 'outgoing' ? 'items-end' : 'items-start'} animate-fadeIn`}
             >
               <div 
-                className={`max-w-[80%] rounded-lg p-3 shadow-sm ${
+                className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm shadow-xl transition-all hover:scale-[1.01] ${
                   m.direction === 'outgoing' 
-                    ? 'bg-[#dcf8c6] text-slate-800' 
-                    : 'bg-white text-slate-800'
+                    ? 'bg-accent-500/10 border border-accent-500/30 text-accent-100 rounded-tr-none' 
+                    : 'bg-n-800/60 border border-n-500/40 text-n-100 rounded-tl-none'
                 }`}
               >
-                {m.message_type === 'text' && <p className="text-sm whitespace-pre-wrap">{m.content}</p>}
+                {m.message_type === 'text' && <p className="leading-relaxed whitespace-pre-wrap">{m.content}</p>}
                 {m.message_type === 'image' && (
-                  <div className="space-y-1">
-                    <img src={m.content} alt="WhatsApp" className="rounded max-w-full cursor-pointer hover:opacity-90" onClick={() => window.open(m.content, '_blank')} />
-                    {m.media_caption && <p className="text-sm border-t pt-1 border-black/5">{m.media_caption}</p>}
+                  <div className="space-y-2 py-1">
+                    <img src={m.content} alt="WhatsApp" className="rounded-xl border border-n-500/20 max-w-full cursor-zoom-in hover:brightness-110 transition-all" onClick={() => window.open(m.content, '_blank')} />
+                    {m.media_caption && <p className="text-[13px] opacity-80 border-t border-n-500/20 pt-2">{m.media_caption}</p>}
                   </div>
                 )}
                 {m.message_type === 'document' && (
-                  <div className="flex items-center gap-2 p-2 bg-black/5 rounded cursor-pointer" onClick={() => window.open(m.content, '_blank')}>
-                    <span className="text-xl">📄</span>
-                    <div className="overflow-hidden">
-                      <p className="text-sm font-medium truncate">{m.media_caption || 'Document'}</p>
-                      <p className="text-[10px] opacity-50 uppercase">{m.content.split('.').pop()}</p>
+                  <div className="flex items-center gap-3 p-3 bg-n-900/50 rounded-xl border border-n-500/20 cursor-pointer group/doc" onClick={() => window.open(m.content, '_blank')}>
+                    <div className="w-10 h-10 rounded-lg bg-n-700 flex items-center justify-center text-xl group-hover/doc:bg-accent-500/20 transition-colors">
+                      📄
+                    </div>
+                    <div className="min-w-0 pr-2">
+                      <p className="font-semibold truncate text-[13px]">{m.media_caption || 'Document'}</p>
+                      <p className="text-[10px] uppercase font-bold text-n-500 tracking-tighter opacity-70">{m.content.split('.').pop()} file</p>
                     </div>
                   </div>
                 )}
-                <div className="flex justify-end items-center gap-1 mt-1">
-                   <span className="text-[10px] opacity-50 px-1">
-                    {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                   </span>
+                
+                <div className={`mt-2 flex items-center gap-1.5 opacity-40 text-[9px] font-bold tracking-widest uppercase ${m.direction === 'outgoing' ? 'justify-end' : 'justify-start'}`}>
+                   <span>{new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                    {m.direction === 'outgoing' && (
-                     <span className={`text-[10px] ${m.status === 'read' ? 'text-blue-500' : 'text-gray-400'}`}>
-                        {m.status === 'read' ? '✓✓' : m.status === 'delivered' ? '✓✓' : '✓'}
-                     </span>
+                     <div className="flex -space-x-1 ml-0.5">
+                        <span className={m.status === 'read' ? 'text-accent-400' : 'text-n-400'}>
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
+                          </svg>
+                        </span>
+                        {(m.status === 'delivered' || m.status === 'read') && (
+                          <span className={m.status === 'read' ? 'text-accent-400' : 'text-n-400'}>
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
+                            </svg>
+                          </span>
+                        )}
+                     </div>
                    )}
                 </div>
               </div>
@@ -151,26 +182,35 @@ export default function WhatsAppChat({ lead }: WhatsAppChatProps) {
         )}
       </div>
 
-      {/* Input */}
-      <form onSubmit={handleSendMessage} className="p-3 bg-white border-t rounded-b-lg flex gap-2">
-        <input
-          type="text"
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          placeholder="Type a message..."
-          className="flex-1 px-4 py-2 bg-slate-100 rounded-full text-sm focus:outline-none focus:ring-1 focus:ring-green-500"
-        />
-        <button
-          disabled={sending || !newMessage.trim()}
-          className="bg-green-600 text-white p-2 rounded-full hover:bg-green-700 disabled:opacity-50 flex items-center justify-center w-10 h-10"
-        >
-          {sending ? '...' : (
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
-            </svg>
-          )}
-        </button>
-      </form>
+      {/* Input Area */}
+      <div className="shrink-0 p-5 bg-n-800/40 border-t border-n-500/40">
+        <form onSubmit={handleSendMessage} className="flex gap-3 items-center">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Type your message..."
+              className="input-field pr-12 h-11"
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-n-500 bg-n-900 px-1.5 py-0.5 rounded uppercase tracking-tighter border border-n-500/20">
+              Shift + Enter
+            </div>
+          </div>
+          <button
+            disabled={sending || !newMessage.trim()}
+            className="btn-primary w-11 h-11 !rounded-xl !p-0 shadow-lg shadow-accent-500/20 hover:shadow-accent-500/40 active:scale-95 transition-all flex items-center justify-center shrink-0"
+          >
+            {sending ? (
+              <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+            ) : (
+              <svg className="w-5 h-5 translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+            )}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
