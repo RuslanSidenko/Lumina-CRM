@@ -14,10 +14,9 @@ import (
 func StartAutomation() {
 	go func() {
 		for {
-			log.Println("Background Automation: Checking for unassigned records...")
 			processUnassignedLeads()
 			processUnassignedDeals()
-			time.Sleep(5 * time.Minute)
+			time.Sleep(2 * time.Minute)
 		}
 	}()
 }
