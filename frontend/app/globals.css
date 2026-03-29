@@ -9,8 +9,8 @@
     box-sizing: border-box;
   }
   body {
-    background-color: #13141a;
-    color: #d1d5db;
+    background-color: #0b0c10;
+    color: #cbd5e1;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -23,7 +23,7 @@
   ::-webkit-scrollbar { width: 4px; height: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: #3b3e55; border-radius: 9999px; }
-  ::-webkit-scrollbar-thumb:hover { background: #2e3044; }
+  ::-webkit-scrollbar-thumb:hover { background: #4f46e5; }
 }
 
 @layer components {
@@ -43,23 +43,23 @@
            text-sm font-semibold transition-all duration-150 select-none;
     background-color: #1c1d26;
     border: 1px solid #2e3044;
-    color: #d1d5db;
+    color: #cbd5e1;
   }
-  .btn-secondary:hover { background-color: #252736; }
+  .btn-secondary:hover { background-color: #252736; border-color: #3b3e55; }
 
   .btn-ghost {
     @apply inline-flex items-center justify-center px-3 py-1.5 rounded-md
            text-sm font-medium transition-all duration-150 select-none;
-    color: #9ca3af;
+    color: #94a3b8;
   }
-  .btn-ghost:hover { color: #f9fafb; background-color: #1c1d26; }
+  .btn-ghost:hover { color: #f1f5f9; background-color: #252736; }
 
   .btn-danger {
     @apply inline-flex items-center justify-center px-4 py-2 rounded-lg
            text-sm font-semibold transition-all duration-150;
     background-color: rgba(239, 68, 68, 0.1);
     border: 1px solid rgba(239, 68, 68, 0.2);
-    color: #f87171;
+    color: #fca5a5;
   }
   .btn-danger:hover { background-color: rgba(239, 68, 68, 0.2); }
 
@@ -69,9 +69,9 @@
            focus:outline-none;
     background-color: #0b0c10;
     border: 1px solid #2e3044;
-    color: #f9fafb;
+    color: #f1f5f9;
   }
-  .input-field::placeholder { color: #6b7280; }
+  .input-field::placeholder { color: #64748b; }
   .input-field:focus {
     border-color: #6366f1;
     box-shadow: 0 0 0 1px #6366f1;
@@ -79,13 +79,13 @@
 
   .input-label {
     @apply block text-xs font-semibold uppercase tracking-wider mb-1.5;
-    color: #9ca3af;
+    color: #94a3b8;
   }
 
   /* ── Cards ── */
   .card {
     @apply rounded-xl;
-    background-color: #1c1d26;
+    background-color: #13141a;
     border: 1px solid #2e3044;
   }
   .card-hover {
@@ -93,7 +93,7 @@
   }
   .card-hover:hover {
     border-color: rgba(99, 102, 241, 0.4);
-    background-color: #252736;
+    background-color: #1c1d26;
   }
 
   /* Legacy compat */
@@ -105,45 +105,45 @@
   }
   .badge-blue {
     @apply badge;
-    background-color: rgba(59, 130, 246, 0.1);
-    color: #60a5fa;
-    border: 1px solid rgba(59, 130, 246, 0.2);
+    background-color: rgba(99, 102, 241, 0.15);
+    color: #a5a6fc;
+    border: 1px solid rgba(99, 102, 241, 0.3);
   }
   .badge-green {
     @apply badge;
-    background-color: rgba(34, 197, 94, 0.1);
-    color: #4ade80;
-    border: 1px solid rgba(34, 197, 94, 0.2);
+    background-color: rgba(16, 185, 129, 0.15);
+    color: #6ee7b7;
+    border: 1px solid rgba(16, 185, 129, 0.3);
   }
   .badge-yellow {
     @apply badge;
-    background-color: rgba(234, 179, 8, 0.1);
-    color: #facc15;
-    border: 1px solid rgba(234, 179, 8, 0.2);
+    background-color: rgba(245, 158, 11, 0.15);
+    color: #fcd34d;
+    border: 1px solid rgba(245, 158, 11, 0.3);
   }
   .badge-purple {
     @apply badge;
-    background-color: rgba(168, 85, 247, 0.1);
-    color: #c084fc;
-    border: 1px solid rgba(168, 85, 247, 0.2);
+    background-color: rgba(168, 85, 247, 0.15);
+    color: #d8b4fe;
+    border: 1px solid rgba(168, 85, 247, 0.3);
   }
   .badge-red {
     @apply badge;
-    background-color: rgba(239, 68, 68, 0.1);
-    color: #f87171;
-    border: 1px solid rgba(239, 68, 68, 0.2);
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.3);
   }
 
   /* ── Modals ── */
   .modal-overlay {
     @apply fixed inset-0 z-50 flex items-center justify-center p-4;
-    background-color: rgba(11, 12, 16, 0.85);
+    background-color: rgba(0, 0, 0, 0.75);
     backdrop-filter: blur(4px);
     animation: fadeIn 0.2s ease-out;
   }
   .modal-panel {
     @apply rounded-2xl;
-    background-color: #1c1d26;
+    background-color: #13141a;
     border: 1px solid #2e3044;
     box-shadow: 0 25px 60px rgba(0,0,0,0.6);
     animation: slideUp 0.25s ease-out;
@@ -152,11 +152,11 @@
   /* ── Utilities ── */
   .section-title {
     @apply text-[10px] font-bold uppercase tracking-widest;
-    color: #6b7280;
+    color: #94a3b8;
   }
   .gradient-text {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, #818cf8, #c084fc);
+    background-image: linear-gradient(135deg, #a5a6fc, #d8b4fe);
   }
 }
 

@@ -10,7 +10,7 @@ export interface Lead {
   id: number;
   name: string;
   phone: string;
-  email: string;
+  email?: string;
   status: string;
   assigned_to?: number | null;
   custom_fields?: Record<string, any>;
@@ -61,5 +61,18 @@ export interface Deal {
   price: number;
   status: 'Offer' | 'Under Contract' | 'Escrow' | 'Closed' | 'Lost';
   close_date?: string;
+  created_at: string;
+}
+
+export interface WhatsAppMessage {
+  id: number;
+  lead_id: number;
+  wa_message_id: string;
+  direction: 'incoming' | 'outgoing';
+  message_type: 'text' | 'image' | 'document';
+  content: string;
+  media_caption?: string;
+  status: string;
+  timestamp: string;
   created_at: string;
 }

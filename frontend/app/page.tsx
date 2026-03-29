@@ -2,10 +2,11 @@ import { cookies } from 'next/headers';
 import LoginForm from './components/LoginForm';
 import DashboardClient from '@/app/components/DashboardClient';
 import { API_BASE } from './config';
+import { getAccessToken } from './actions/auth';
 
 export default async function DashboardPage() {
   const cookieStore = await cookies();
-  const token = cookieStore.get('crm_token')?.value;
+  const token = await getAccessToken();
   const role = cookieStore.get('crm_role')?.value;
 
   if (!token) {

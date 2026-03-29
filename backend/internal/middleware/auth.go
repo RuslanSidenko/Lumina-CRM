@@ -6,10 +6,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"real_estate_crm/internal/models"
 	"real_estate_crm/internal/repository"
+
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 var JwtSecret = []byte("super_secret_crm_key") // Use ENV var in production
@@ -79,6 +80,7 @@ func RequirePermission(resource, action string) gin.HandlerFunc {
 		}
 
 		roleName := userRole.(string)
+
 		if roleName == "admin" {
 			c.Next() // Admin always bypasses specific permission checks
 			return
@@ -113,7 +115,7 @@ func RequirePermission(resource, action string) gin.HandlerFunc {
 			return
 		}
 
-	c.Set("permissions", p)
+		c.Set("permissions", p)
 		c.Next()
 	}
 }

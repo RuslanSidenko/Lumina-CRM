@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Sidebar from '@/app/components/Sidebar';
 import LeadsTable from './LeadsTable';
 import AddLeadModal from '@/app/components/AddLeadModal';
@@ -16,6 +16,12 @@ import FieldManagement from './FieldManagement';
 import RoleManagement from './RoleManagement';
 import APIKeyManagement from './APIKeyManagement';
 import ChangePassword from './ChangePassword';
+import BackupManagement from './BackupManagement';
+import AutomationManagement from './AutomationManagement';
+import MandatoryChangePasswordModal from './MandatoryChangePasswordModal';
+import Notification from './Notification';
+import MeetingConnections from './MeetingConnections';
+import MasterCalendar from './MasterCalendar';
 
 import { Lead, Property } from '../types';
 import { API_BASE } from '../config';
@@ -27,7 +33,7 @@ interface DashboardClientProps {
   role: string;
 }
 
-const TABS = ['Leads', 'Properties', 'Deals', 'Insights', 'Fields', 'Team', 'Roles', 'API', 'Settings'];
+const TABS = ['Leads', 'Properties', 'Deals', 'Insights', 'Calendar', 'Fields', 'Team', 'Roles', 'API', 'Backups', 'Automation', 'Settings'];
 
 export default function DashboardClient({ initialLeads, initialProperties, token, role }: DashboardClientProps) {
   const [activeTab, setActiveTab] = useState('Leads');
@@ -41,6 +47,33 @@ export default function DashboardClient({ initialLeads, initialProperties, token
   const [showAddDeal, setShowAddDeal] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [mustChangePassword, setMustChangePassword] = useState(false);
+  const [notification, setNotification] = useState<{ message: string, type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
+
+  const notify = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'success') => {
+    setNotification({ message, type });
+  };
+
+  useEffect(() => {
+    if (selectedLead) {
+      const updated = leads.find(l => l.id === selectedLead.id);
+      if (updated) setSelectedLead(updated);
+    }
+  }, [leads]);
+
+  useEffect(() => {
+    if (selectedProperty) {
+      const updated = properties.find(p => p.id === selectedProperty.id);
+      if (updated) setSelectedProperty(updated);
+    }
+  }, [properties]);
+
+  useEffect(() => {
+    const shouldChange = document.cookie.includes('crm_must_change=true');
+    if (shouldChange) {
+      setMustChangePassword(true);
+    }
+  }, []);
 
   const refreshData = async () => {
     try {
@@ -50,18 +83,32 @@ export default function DashboardClient({ initialLeads, initialProperties, token
         fetch(`${API_BASE}/api/v1/properties`, { headers }),
         fetch(`${API_BASE}/api/v1/analytics`, { headers }),
       ]);
+
+      if (resLeads.status === 401 || resProps.status === 401 || resAnalytics.status === 401) {
+        // Attempting to refresh by reloading page (SSR will handle it via getAccessToken)
+        window.location.reload();
+        return;
+      }
+
       if (resLeads.ok) setLeads(await resLeads.json());
       if (resProps.ok) setProperties(await resProps.json());
       if (resAnalytics.ok) setAnalytics(await resAnalytics.json());
 
-      const resPerms = await fetch(`${API_BASE}/api/v1/roles`, { headers }); // We might need a better endpoint for 'my permissions'
-      if (resPerms.ok) {
-        const allPerms = await resPerms.json();
-        setPermissions(allPerms.filter((p: any) => p.role_name === role));
+      if (role === 'admin') {
+        const resPerms = await fetch(`${API_BASE}/api/v1/roles`, { headers });
+        if (resPerms.ok) {
+          setPermissions(await resPerms.json());
+        }
       }
 
       setRefreshTrigger(p => p + 1);
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      console.error(e); 
+      // Basic 401 detection if not caught above
+      if (e instanceof Error && e.message.includes('401')) {
+        window.location.reload();
+      }
+    }
   };
 
   const handleAdd = () => {
@@ -70,12 +117,25 @@ export default function DashboardClient({ initialLeads, initialProperties, token
     if (activeTab === 'Deals') setShowAddDeal(true);
   };
 
+  const openLeadById = (id: number) => {
+    const lead = leads.find(l => l.id === id);
+    if (lead) {
+      setSelectedLead(lead);
+    } else {
+      notify("Lead not found or no permission to view", "error");
+    }
+  };
+
   const canAdd = ['Leads', 'Properties', 'Deals'].includes(activeTab);
 
   const totalLeads = analytics.total_leads || leads.length;
   const activeLeads = leads.filter(l => l.status === 'Active').length;
   const qualifiedLeads = leads.filter(l => l.status === 'Qualified').length;
   const newLeads = leads.filter(l => l.status === 'New').length;
+
+  const closeNotification = useCallback(() => {
+    setNotification(null);
+  }, []);
 
   return (
     <div className="flex h-screen w-full bg-n-800 overflow-hidden">
@@ -137,7 +197,7 @@ export default function DashboardClient({ initialLeads, initialProperties, token
 
               {/* Table */}
               <div className="card overflow-hidden">
-                <LeadsTable leads={leads} token={token} role={role} refreshData={refreshData} onLeadClick={setSelectedLead} />
+                <LeadsTable leads={leads} token={token} role={role} refreshData={refreshData} onLeadClick={setSelectedLead} notify={notify} />
               </div>
             </div>
           )}
@@ -150,20 +210,47 @@ export default function DashboardClient({ initialLeads, initialProperties, token
 
           {activeTab === 'Deals'    && <div className="animate-slide-up"><DealsPipeline token={token} key={refreshTrigger} /></div>}
           {activeTab === 'Insights' && <div className="animate-slide-up"><AnalyticsDashboard token={token} /></div>}
+          {activeTab === 'Calendar' && (
+            <div className="animate-slide-up h-[calc(100vh-140px)]">
+              <MasterCalendar token={token} onLeadClick={openLeadById} />
+            </div>
+          )}
           {activeTab === 'Fields'   && role === 'admin' && <FieldManagement token={token} />}
           {activeTab === 'Team'     && (role === 'admin' || permissions.some(p => p.resource === 'users' && p.can_view)) && <UserManagement token={token} />}
           {activeTab === 'Roles'    && role === 'admin' && <RoleManagement token={token} />}
           {activeTab === 'API'      && role === 'admin' && <APIKeyManagement token={token} />}
-          {activeTab === 'Settings' && <ChangePassword token={token} />}
+          {activeTab === 'Backups'  && role === 'admin' && <BackupManagement token={token} notify={notify} />}
+          {activeTab === 'Automation' && role === 'admin' && <AutomationManagement token={token} />}
+          {activeTab === 'Settings' && (
+            <div className="space-y-8 animate-slide-up">
+              <ChangePassword token={token} />
+              <MeetingConnections token={token} notify={notify} />
+            </div>
+          )}
         </main>
       </div>
 
       {/* Modals */}
-      {showAddLead && <AddLeadModal token={token} onClose={() => setShowAddLead(false)} onSuccess={() => { setShowAddLead(false); refreshData(); }} />}
-      {showAddProperty && <AddPropertyModal token={token} onClose={() => setShowAddProperty(false)} onSuccess={() => { setShowAddProperty(false); refreshData(); }} />}
-      {showAddDeal && <AddDealModal token={token} leads={leads} properties={properties} onClose={() => setShowAddDeal(false)} onSuccess={() => { setShowAddDeal(false); refreshData(); }} />}
-      {selectedLead && <LeadDetailsModal lead={selectedLead} token={token} onClose={() => setSelectedLead(null)} onUpdate={refreshData} />}
-      {selectedProperty && <PropertyDetailsModal property={selectedProperty} token={token} onClose={() => setSelectedProperty(null)} onUpdate={refreshData} />}
+      {showAddLead && <AddLeadModal token={token} onClose={() => setShowAddLead(false)} onSuccess={() => { refreshData(); setShowAddLead(false); notify("Lead added successfully!"); }} />}
+      {showAddProperty && <AddPropertyModal token={token} onClose={() => setShowAddProperty(false)} onSuccess={() => { refreshData(); setShowAddProperty(false); notify("Property listed successfully!"); }} />}
+      {showAddDeal && <AddDealModal token={token} leads={leads} properties={properties} onClose={() => setShowAddDeal(false)} onSuccess={() => { refreshData(); setShowAddDeal(false); notify("Deal created successfully!"); }} />}
+      {selectedLead && <LeadDetailsModal lead={selectedLead} token={token} onClose={() => setSelectedLead(null)} onUpdate={refreshData} notify={notify} />}
+      {selectedProperty && <PropertyDetailsModal property={selectedProperty} token={token} onClose={() => setSelectedProperty(null)} onUpdate={refreshData} notify={notify} />}
+      
+      {mustChangePassword && (
+        <MandatoryChangePasswordModal 
+          token={token} 
+          onSuccess={() => setMustChangePassword(false)} 
+        />
+      )}
+
+      {notification && (
+        <Notification 
+          message={notification.message} 
+          type={notification.type} 
+          onClose={closeNotification} 
+        />
+      )}
     </div>
   );
 }

@@ -70,7 +70,15 @@ export default function LoginForm() {
               />
             </div>
             <div>
-              <label className="input-label">Password</label>
+              <div className="flex justify-between items-center mb-1">
+                <label className="input-label mb-0">Password</label>
+                <a 
+                  href="/forgot-password" 
+                  className="text-[10px] font-bold text-accent-500 hover:text-accent-400 transition-colors uppercase tracking-wider"
+                >
+                  Forgot password?
+                </a>
+              </div>
               <input
                 id="login-password"
                 className="input-field"
@@ -94,7 +102,7 @@ export default function LoginForm() {
         </div>
 
         <p className="text-center text-xs text-n-500 mt-4">
-          Default: <span className="text-n-400 font-medium">admin</span> / password
+          Default: <span className="text-n-400 font-medium">admin</span> / admin
         </p>
       </div>
     </div>

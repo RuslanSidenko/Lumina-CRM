@@ -98,3 +98,38 @@ func UpdateDealStatus(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Deal status updated successfully"})
 }
+
+func CreatePublicDeal(c *gin.Context) {
+	var d models.Deal
+	if err := c.ShouldBindJSON(&d); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if d.LeadID <= 0 || d.PropertyID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "A valid Lead and Property must be selected"})
+		return
+	}
+
+	if d.Status == "" {
+		d.Status = "Proposed"
+	}
+
+	var err error
+	if d.AgentID == 0 {
+		err = repository.DB.QueryRow(context.Background(),
+			"INSERT INTO deals (lead_id, property_id, agent_id, price, status, close_date) VALUES ($1, $2, NULL, $3, $4, $5) RETURNING id",
+			d.LeadID, d.PropertyID, d.Price, d.Status, d.CloseDate).Scan(&d.ID)
+	} else {
+		err = repository.DB.QueryRow(context.Background(),
+			"INSERT INTO deals (lead_id, property_id, agent_id, price, status, close_date) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
+			d.LeadID, d.PropertyID, d.AgentID, d.Price, d.Status, d.CloseDate).Scan(&d.ID)
+	}
+
+	if err != nil {
+		log.Println("Create public deal error:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create public deal record"})
+		return
+	}
+	c.JSON(http.StatusCreated, d)
+}

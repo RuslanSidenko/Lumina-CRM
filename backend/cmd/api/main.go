@@ -12,11 +12,13 @@ import (
 	"real_estate_crm/internal/handlers"
 	"real_estate_crm/internal/middleware"
 	"real_estate_crm/internal/repository"
+	"real_estate_crm/internal/utils"
 )
 
 func main() {
 	_ = godotenv.Load()
 	repository.ConnectDB()
+	utils.InitS3()
 
 	r := gin.Default()
 	r.SetTrustedProxies(nil)
@@ -28,19 +30,43 @@ func main() {
 	}
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     origins,
+		AllowAllOrigins:  true,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Authorization"},
+		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Authorization", "X-API-Key"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
 
+	// Rate Limiters
+	loginLimiter := middleware.RateLimiter(1.0/60.0, 5) // 1 request per minute, burst of 5
+	publicLimiter := middleware.RateLimiter(5, 10)     // 5 requests per second, burst of 10
+
 	api := r.Group("/api/v1")
 	{
-		// Public Routes
-		api.POST("/auth/login", handlers.Login)
-		api.POST("/public/leads", middleware.RequireAPIKey(), handlers.CreatePublicLead)
+		// Public Auth Routes
+		auth := api.Group("/auth")
+		auth.Use(loginLimiter)
+		{
+			auth.POST("/login", handlers.Login)
+			auth.POST("/refresh", handlers.RefreshToken)
+			auth.POST("/forgot-password", handlers.ForgotPassword)
+			auth.POST("/reset-password", handlers.ResetPassword)
+		}
+
+		// Public Resources (API Key Required + Rate Limited)
+		public := api.Group("/public")
+		public.Use(middleware.RequireAPIKey())
+		public.Use(publicLimiter)
+		{
+			public.POST("/leads", handlers.CreatePublicLead)
+			public.POST("/deals", handlers.CreatePublicDeal)
+			public.POST("/properties", handlers.CreatePublicProperty)
+			
+			// WhatsApp Webhook (Public but verified by Meta)
+			public.GET("/whatsapp/webhook", handlers.WhatsAppWebhookGET)
+			public.POST("/whatsapp/webhook", handlers.WhatsAppWebhookPOST)
+		}
 
 		// Evaluated against Auth JWT token
 		protected := api.Group("/")
@@ -48,6 +74,8 @@ func main() {
 		{
 			// Auth actions available to all logged-in users
 			protected.PUT("/auth/change-password", handlers.ChangePassword)
+			protected.GET("/auth/permissions", handlers.GetMyPermissions)
+
 
 			// Dynamic RBAC for Leads
 			protected.GET("/leads", middleware.RequirePermission("leads", "view"), handlers.GetLeads)
@@ -102,15 +130,47 @@ func main() {
 				adminOnly.GET("/api-keys", handlers.GetAPIKeys)
 				adminOnly.POST("/api-keys", handlers.CreateAPIKey)
 				adminOnly.DELETE("/api-keys/:id", handlers.DeleteAPIKey)
+
+				// Invitations
+				adminOnly.POST("/invitations", handlers.CreateInvitation)
+
+				// Backup Management
+				adminOnly.POST("/backups/trigger", handlers.TriggerBackup)
+				adminOnly.GET("/backups/status", handlers.GetBackupStatus)
+
+				// Automation Management
+				adminOnly.GET("/automation/settings", handlers.GetAutomationSettings)
+				adminOnly.PUT("/automation/settings", handlers.UpdateAutomationSetting)
 			}
 			// Agents can also read field definitions
 			protected.GET("/custom-fields", handlers.GetCustomFields)
+
+			// WhatsApp Chat Interface
+			protected.GET("/whatsapp/chats/:lead_id", handlers.GetWhatsAppChats)
+			protected.POST("/whatsapp/send", handlers.SendWhatsAppMessage)
+
+			// Meetings & Calendar
+			protected.GET("/meetings/auth", handlers.GetMeetingAuthURL)
+			protected.GET("/meetings/callback/:provider", handlers.MeetingOAuthCallback)
+			protected.GET("/meetings/connections", handlers.GetMeetingConnections)
+			protected.DELETE("/meetings/connections/:provider", handlers.DisconnectMeetingService)
+			protected.POST("/meetings/book", handlers.BookMeeting)
+			protected.GET("/meetings", middleware.RequirePermission("meetings", "view"), handlers.GetMeetings)
 		}
+
+		// Public Invitation validation and fulfillment
+		api.GET("/invitations/:token", handlers.GetInvitation)
+		api.POST("/invitations/fulfill", handlers.FulfillInvitation)
 	}
+
+	// Start background processes
+	utils.StartAutoBackup()
+	utils.StartAutomation()
+
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "8090"
 	}
 
 	fmt.Printf("Starting Gin backend API on :%s\n", port)

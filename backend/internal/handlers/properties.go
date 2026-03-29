@@ -4,6 +4,8 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"reflect"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"real_estate_crm/internal/models"
@@ -50,19 +52,8 @@ func GetProperties(c *gin.Context) {
 			continue
 		}
 
-		if hasPerms {
-			perm := perms.(models.RolePermission)
-			for _, rf := range perm.RestrictedFields {
-				switch rf {
-				case "price": p.Price = 0
-				case "description": p.Description = "***"
-				case "custom_fields": p.CustomFields = nil
-				}
-				if p.CustomFields != nil {
-					delete(p.CustomFields, rf)
-				}
-			}
-		}
+		// Field-level visibility is no longer restricted, only modification is.
+
 
 		properties = append(properties, p)
 	}
@@ -136,17 +127,37 @@ func UpdateProperty(c *gin.Context) {
 
 	if hasPerms {
 		perm := perms.(models.RolePermission)
+		var violations []string
 		for _, rf := range perm.RestrictedFields {
-			switch rf {
-			case "title": p.Title = current.Title
-			case "price": p.Price = current.Price
-			case "description": p.Description = current.Description
+			isViolated := false
+			fieldKey := strings.ToLower(rf)
+
+			switch fieldKey {
+			case "title": if p.Title != current.Title { isViolated = true; p.Title = current.Title }
+			case "price": if p.Price != current.Price { isViolated = true; p.Price = current.Price }
+			case "description": if p.Description != current.Description { isViolated = true; p.Description = current.Description }
+			case "status": if p.Status != current.Status { isViolated = true; p.Status = current.Status }
 			}
-			if p.CustomFields != nil && current.CustomFields != nil {
-				if _, restricted := p.CustomFields[rf]; restricted {
-					p.CustomFields[rf] = current.CustomFields[rf]
+
+			if p.CustomFields != nil {
+				for k, newVal := range p.CustomFields {
+					if strings.EqualFold(k, rf) {
+						oldVal, exists := current.CustomFields[k]
+						if !exists || !reflect.DeepEqual(newVal, oldVal) {
+							isViolated = true
+							p.CustomFields[k] = oldVal
+						}
+					}
 				}
 			}
+
+			if isViolated {
+				violations = append(violations, rf)
+			}
+		}
+		if len(violations) > 0 {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions to modify: " + strings.Join(violations, ", ")})
+			return
 		}
 	}
 
@@ -160,4 +171,37 @@ func UpdateProperty(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Property updated successfully"})
+}
+
+func CreatePublicProperty(c *gin.Context) {
+	var p models.Property
+	if err := c.ShouldBindJSON(&p); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if p.Status == "" {
+		p.Status = "Pending Review"
+	}
+	if p.CustomFields == nil {
+		p.CustomFields = make(map[string]interface{})
+	}
+
+	var err error
+	if p.AgentID == 0 {
+		err = repository.DB.QueryRow(context.Background(),
+			"INSERT INTO properties (title, address, description, price, bedrooms, bathrooms, area, status, agent_id, images, custom_fields) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NULL, $9, $10) RETURNING id",
+			p.Title, p.Address, p.Description, p.Price, p.Bedrooms, p.Bathrooms, p.Area, p.Status, p.Images, p.CustomFields).Scan(&p.ID)
+	} else {
+		err = repository.DB.QueryRow(context.Background(),
+			"INSERT INTO properties (title, address, description, price, bedrooms, bathrooms, area, status, agent_id, images, custom_fields) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id",
+			p.Title, p.Address, p.Description, p.Price, p.Bedrooms, p.Bathrooms, p.Area, p.Status, p.AgentID, p.Images, p.CustomFields).Scan(&p.ID)
+	}
+
+	if err != nil {
+		log.Println("Create public property error:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create public property listing"})
+		return
+	}
+	c.JSON(http.StatusCreated, p)
 }

@@ -27,7 +27,8 @@ const AVAILABLE_FIELDS: Record<string, string[]> = {
   tasks: ['lead_id', 'property_id', 'agent_id', 'title', 'description', 'due_at', 'status'],
   interactions: ['lead_id', 'agent_id', 'type', 'content'],
   users: ['name', 'email', 'role', 'password'],
-  custom_fields: ['entity_type', 'label', 'field_type', 'options', 'is_required']
+  custom_fields: ['entity_type', 'label', 'field_type', 'options', 'is_required'],
+  meetings: ['lead_id', 'agent_id', 'title', 'provider', 'meeting_link', 'start_time', 'end_time', 'status']
 };
 
 export default function RoleManagement({ token }: RoleManagementProps) {

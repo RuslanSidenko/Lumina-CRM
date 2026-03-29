@@ -4,6 +4,8 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"reflect"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"real_estate_crm/internal/models"
@@ -51,21 +53,8 @@ func GetLeads(c *gin.Context) {
 			continue
 		}
 		
-		// RBAC field-level filtering
-		if hasPerms {
-			p := perms.(models.RolePermission)
-			for _, rf := range p.RestrictedFields {
-				switch rf {
-				case "phone": l.Phone = "***"
-				case "email": l.Email = "***"
-				case "custom_fields": l.CustomFields = nil
-				}
-				// Also check custom fields specifically
-				if l.CustomFields != nil {
-					delete(l.CustomFields, rf)
-				}
-			}
-		}
+		// Field-level visibility is no longer restricted, only modification is.
+
 		
 		leads = append(leads, l)
 	}
@@ -83,12 +72,8 @@ func CreateLead(c *gin.Context) {
 	}
 
 	userID, _ := c.Get("userID")
-	currentUID := int(userID.(float64))
-
-	if req.AssignedTo == nil {
-		req.AssignedTo = &currentUID
-	}
-
+	_ = userID // Keep variable access for future-proofing if needed, but remove default assignment
+	
 	if req.Source == "" {
 		req.Source = "manual"
 	}
@@ -145,20 +130,51 @@ func UpdateLead(c *gin.Context) {
 	// 3. Field-level protection: Restore restricted fields from the previous state
 	if hasPerms {
 		p := perms.(models.RolePermission)
+		var violations []string
+		log.Printf("DEBUG: Restricted fields for this user: %v", p.RestrictedFields)
+		
+		customKeys := []string{}
+		for k := range l.CustomFields {
+			customKeys = append(customKeys, k)
+		}
+		log.Printf("DEBUG: Custom fields in request: %v", customKeys)
+
 		for _, rf := range p.RestrictedFields {
-			switch rf {
-			case "name": l.Name = current.Name
-			case "phone": l.Phone = current.Phone
-			case "email": l.Email = current.Email
-			case "status": l.Status = current.Status
-			case "assigned_to": l.AssignedTo = current.AssignedTo
-			}
-			// Maintain custom fields if restricted
-			if l.CustomFields != nil && current.CustomFields != nil {
-				if _, restricted := l.CustomFields[rf]; restricted {
-					l.CustomFields[rf] = current.CustomFields[rf]
+			isViolated := false
+			fieldKey := strings.ToLower(rf)
+			
+			switch fieldKey {
+			case "name": if l.Name != current.Name { isViolated = true; l.Name = current.Name }
+			case "phone": if l.Phone != current.Phone { isViolated = true; l.Phone = current.Phone }
+			case "email": if l.Email != current.Email { isViolated = true; l.Email = current.Email }
+			case "status": if l.Status != current.Status { isViolated = true; l.Status = current.Status }
+			case "assigned_to": 
+				if (l.AssignedTo == nil && current.AssignedTo != nil) || (l.AssignedTo != nil && current.AssignedTo == nil) || (l.AssignedTo != nil && current.AssignedTo != nil && *l.AssignedTo != *current.AssignedTo) {
+					isViolated = true; l.AssignedTo = current.AssignedTo
 				}
 			}
+
+			// Custom fields check (case-insensitive key matching)
+			if l.CustomFields != nil {
+				for k, newVal := range l.CustomFields {
+					if strings.EqualFold(k, rf) {
+						oldVal, exists := current.CustomFields[k]
+						if !exists || !reflect.DeepEqual(newVal, oldVal) {
+							isViolated = true
+							l.CustomFields[k] = oldVal
+						}
+					}
+				}
+			}
+
+			if isViolated {
+				violations = append(violations, rf)
+			}
+		}
+		if len(violations) > 0 {
+			log.Printf("Update blocked for user %v due to violations: %v", userID, violations)
+			c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions to modify: " + strings.Join(violations, ", ")})
+			return
 		}
 	}
 

@@ -105,6 +105,57 @@ npm run dev
 
 ---
 
+## 🌐 Public API Endpoints
+
+Lumina CRM provides public endpoints for external integrations (e.g., website forms, external property feeds). These endpoints require a valid API Key passed in the `X-API-Key` header.
+
+### 1. Create Public Lead
+- **URL:** `/api/v1/public/leads`
+- **Method:** `POST`
+- **Body:**
+  ```json
+  {
+    "name": "Jane Doe",
+    "phone": "+123456789",
+    "email": "jane@example.com",
+    "status": "New",
+    "source": "Website",
+    "custom_fields": { "Budget": 500000 }
+  }
+  ```
+
+### 2. Create Public Property
+- **URL:** `/api/v1/public/properties`
+- **Method:** `POST`
+- **Body:**
+  ```json
+  {
+    "title": "Luxury Villa",
+    "address": "123 Ocean Drive",
+    "price": 1200000,
+    "bedrooms": 4,
+    "bathrooms": 3,
+    "area": 350,
+    "status": "Pending Review"
+  }
+  ```
+
+### 3. Create Public Deal
+- **URL:** `/api/v1/public/deals`
+- **Method:** `POST`
+- **Body:**
+  ```json
+  {
+    "lead_id": 1,
+    "property_id": 5,
+    "price": 1150000,
+    "status": "Proposed",
+    "close_date": "2024-12-31T00:00:00Z"
+  }
+  ```
+
+---
+
 ## 🔐 Environment Variables
 
 ### Backend (`/backend/.env`)
