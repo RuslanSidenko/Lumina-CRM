@@ -129,6 +129,19 @@ func SeedDatabase() {
 		content TEXT,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);
+	CREATE TABLE IF NOT EXISTS whatsapp_messages (
+		id SERIAL PRIMARY KEY,
+		lead_id INTEGER REFERENCES leads(id) ON DELETE CASCADE,
+		wa_message_id VARCHAR(100) UNIQUE,
+		direction VARCHAR(10) NOT NULL, -- incoming, outgoing
+		message_type VARCHAR(10) NOT NULL, -- text, image, document
+		content TEXT NOT NULL,
+		media_caption TEXT,
+		status VARCHAR(20) DEFAULT 'received',
+		timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);
+	CREATE INDEX IF NOT EXISTS idx_whatsapp_lead_id ON whatsapp_messages(lead_id);
 	CREATE TABLE IF NOT EXISTS tasks (
 		id SERIAL PRIMARY KEY,
 		lead_id INTEGER REFERENCES leads(id) ON DELETE SET NULL,
@@ -301,6 +314,23 @@ func SeedDatabase() {
 	if _, err := DB.Exec(context.Background(), "ALTER TABLE properties ADD COLUMN IF NOT EXISTS custom_fields JSONB DEFAULT '{}'"); err != nil {
 		log.Printf("Migration error (properties custom_fields): %v", err)
 	}
+
+	// Add whatsapp_messages table if it's missing (failsafe)
+	_, _ = DB.Exec(context.Background(), `
+		CREATE TABLE IF NOT EXISTS whatsapp_messages (
+			id SERIAL PRIMARY KEY,
+			lead_id INTEGER REFERENCES leads(id) ON DELETE CASCADE,
+			wa_message_id VARCHAR(100) UNIQUE,
+			direction VARCHAR(10) NOT NULL,
+			message_type VARCHAR(10) NOT NULL,
+			content TEXT NOT NULL,
+			media_caption TEXT,
+			status VARCHAR(20) DEFAULT 'received',
+			timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)
+	`)
+	_, _ = DB.Exec(context.Background(), "CREATE INDEX IF NOT EXISTS idx_whatsapp_lead_id ON whatsapp_messages(lead_id)")
 	
 	// Add unique constraint only if it doesn't exist
 	_, err = DB.Exec(context.Background(), `

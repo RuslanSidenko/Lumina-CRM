@@ -1,9 +1,11 @@
 'use client'
 
+import React, { useState } from 'react';
 import { Lead } from '../types';
 import InteractionLog from './InteractionLog';
 import TaskManager from './TaskManager';
 import LeadFieldsView from './LeadFieldsView';
+import WhatsAppChat from './WhatsAppChat';
 
 interface LeadDetailsModalProps {
   lead: Lead;
@@ -22,6 +24,7 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 export default function LeadDetailsModal({ lead, token, onClose, onUpdate, notify }: LeadDetailsModalProps) {
+  const [activeTab, setActiveTab] = useState<'details' | 'whatsapp'>('details');
   const initials = lead.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
   return (
@@ -67,13 +70,41 @@ export default function LeadDetailsModal({ lead, token, onClose, onUpdate, notif
           </button>
         </div>
 
+
+        {/* Tab Switcher */}
+        <div className="flex border-b border-n-500/60 shrink-0 px-6">
+          <button
+            onClick={() => setActiveTab('details')}
+            className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
+              activeTab === 'details' ? 'border-accent-500 text-n-50' : 'border-transparent text-n-400 hover:text-n-100'
+            }`}
+          >
+            Lead Details & CRM
+          </button>
+          <button
+            onClick={() => setActiveTab('whatsapp')}
+            className={`relative px-4 py-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${
+              activeTab === 'whatsapp' ? 'border-green-500 text-n-50' : 'border-transparent text-n-400 hover:text-n-100'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-green-500"></span>
+            WhatsApp
+          </button>
+        </div>
+
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-8">
-          <LeadFieldsView lead={lead} token={token} onUpdate={onUpdate} notify={notify} />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4 border-t border-n-500/40">
-            <InteractionLog leadId={lead.id} token={token} />
-            <TaskManager leadId={lead.id} token={token} />
-          </div>
+        <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-n-800/20">
+          {activeTab === 'details' ? (
+            <>
+              <LeadFieldsView lead={lead} token={token} onUpdate={onUpdate} notify={notify} />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4 border-t border-n-500/40">
+                <InteractionLog leadId={lead.id} token={token} />
+                <TaskManager leadId={lead.id} token={token} />
+              </div>
+            </>
+          ) : (
+            <WhatsAppChat lead={lead} />
+          )}
         </div>
       </div>
     </div>

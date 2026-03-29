@@ -18,6 +18,7 @@ import (
 func main() {
 	_ = godotenv.Load()
 	repository.ConnectDB()
+	utils.InitS3()
 
 	r := gin.Default()
 	r.SetTrustedProxies(nil)
@@ -61,6 +62,10 @@ func main() {
 			public.POST("/leads", handlers.CreatePublicLead)
 			public.POST("/deals", handlers.CreatePublicDeal)
 			public.POST("/properties", handlers.CreatePublicProperty)
+			
+			// WhatsApp Webhook (Public but verified by Meta)
+			public.GET("/whatsapp/webhook", handlers.WhatsAppWebhookGET)
+			public.POST("/whatsapp/webhook", handlers.WhatsAppWebhookPOST)
 		}
 
 		// Evaluated against Auth JWT token
@@ -139,6 +144,10 @@ func main() {
 			}
 			// Agents can also read field definitions
 			protected.GET("/custom-fields", handlers.GetCustomFields)
+
+			// WhatsApp Chat Interface
+			protected.GET("/whatsapp/chats/:lead_id", handlers.GetWhatsAppChats)
+			protected.POST("/whatsapp/send", handlers.SendWhatsAppMessage)
 		}
 
 		// Public Invitation validation and fulfillment
