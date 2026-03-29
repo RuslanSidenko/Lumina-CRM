@@ -21,6 +21,7 @@ import AutomationManagement from './AutomationManagement';
 import MandatoryChangePasswordModal from './MandatoryChangePasswordModal';
 import Notification from './Notification';
 import MeetingConnections from './MeetingConnections';
+import MasterCalendar from './MasterCalendar';
 
 import { Lead, Property } from '../types';
 import { API_BASE } from '../config';
@@ -32,7 +33,7 @@ interface DashboardClientProps {
   role: string;
 }
 
-const TABS = ['Leads', 'Properties', 'Deals', 'Insights', 'Fields', 'Team', 'Roles', 'API', 'Backups', 'Automation', 'Settings'];
+const TABS = ['Leads', 'Properties', 'Deals', 'Insights', 'Calendar', 'Fields', 'Team', 'Roles', 'API', 'Backups', 'Automation', 'Settings'];
 
 export default function DashboardClient({ initialLeads, initialProperties, token, role }: DashboardClientProps) {
   const [activeTab, setActiveTab] = useState('Leads');
@@ -114,6 +115,15 @@ export default function DashboardClient({ initialLeads, initialProperties, token
     if (activeTab === 'Leads') setShowAddLead(true);
     if (activeTab === 'Properties') setShowAddProperty(true);
     if (activeTab === 'Deals') setShowAddDeal(true);
+  };
+
+  const openLeadById = (id: number) => {
+    const lead = leads.find(l => l.id === id);
+    if (lead) {
+      setSelectedLead(lead);
+    } else {
+      notify("Lead not found or no permission to view", "error");
+    }
   };
 
   const canAdd = ['Leads', 'Properties', 'Deals'].includes(activeTab);
@@ -200,6 +210,11 @@ export default function DashboardClient({ initialLeads, initialProperties, token
 
           {activeTab === 'Deals'    && <div className="animate-slide-up"><DealsPipeline token={token} key={refreshTrigger} /></div>}
           {activeTab === 'Insights' && <div className="animate-slide-up"><AnalyticsDashboard token={token} /></div>}
+          {activeTab === 'Calendar' && (
+            <div className="animate-slide-up h-[calc(100vh-140px)]">
+              <MasterCalendar token={token} onLeadClick={openLeadById} />
+            </div>
+          )}
           {activeTab === 'Fields'   && role === 'admin' && <FieldManagement token={token} />}
           {activeTab === 'Team'     && (role === 'admin' || permissions.some(p => p.resource === 'users' && p.can_view)) && <UserManagement token={token} />}
           {activeTab === 'Roles'    && role === 'admin' && <RoleManagement token={token} />}

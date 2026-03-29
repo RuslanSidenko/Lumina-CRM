@@ -192,7 +192,7 @@ func SeedDatabase() {
 		can_edit_all BOOLEAN DEFAULT FALSE,
 		can_delete BOOLEAN DEFAULT FALSE,
 		restricted_fields TEXT[] DEFAULT '{}', -- fields they cannot see or edit
-		UNIQUE(role_name, resource)
+		UNIQUE(role_name, resource) -- resource: leads, properties, deals, tasks, interactions, users, meetings
 	);
 	CREATE TABLE IF NOT EXISTS invitations (
 		id SERIAL PRIMARY KEY,
@@ -228,6 +228,18 @@ func SeedDatabase() {
 		expiry TIMESTAMP,
 		UNIQUE(user_id, provider)
 	);
+	CREATE TABLE IF NOT EXISTS meetings (
+		id SERIAL PRIMARY KEY,
+		lead_id INTEGER REFERENCES leads(id) ON DELETE CASCADE,
+		agent_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+		title VARCHAR(200) NOT NULL,
+		provider VARCHAR(20),
+		meeting_link TEXT,
+		start_time TIMESTAMP NOT NULL,
+		end_time TIMESTAMP NOT NULL,
+		status VARCHAR(20) DEFAULT 'scheduled',
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);
 	`
 
 	
@@ -258,6 +270,7 @@ func SeedDatabase() {
 		{"admin", "interactions", true, true, true, true, true, true},
 		{"admin", "users", true, true, true, true, true, true},
 		{"admin", "custom_fields", true, true, true, true, true, true},
+		{"admin", "meetings", true, true, true, true, true, true},
 		
 		// Agent: View all properties, but only manage own leads
 		{"agent", "leads", true, false, true, true, false, false},
@@ -266,6 +279,7 @@ func SeedDatabase() {
 		{"agent", "tasks", true, false, true, true, false, false},
 		{"agent", "interactions", true, false, true, true, false, false},
 		{"agent", "users", true, true, false, false, false, false},
+		{"agent", "meetings", true, false, true, true, false, false},
 	}
 
 	for _, p := range defaultPermissions {
@@ -286,6 +300,11 @@ func SeedDatabase() {
 	_, _ = DB.Exec(context.Background(), `
 		INSERT INTO role_permissions (role_name, resource)
 		SELECT DISTINCT role_name, 'users' FROM role_permissions
+		ON CONFLICT DO NOTHING
+	`)
+	_, _ = DB.Exec(context.Background(), `
+		INSERT INTO role_permissions (role_name, resource)
+		SELECT DISTINCT role_name, 'meetings' FROM role_permissions
 		ON CONFLICT DO NOTHING
 	`)
 	

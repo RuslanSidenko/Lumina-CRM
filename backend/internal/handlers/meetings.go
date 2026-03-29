@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/oauth2"
+	"real_estate_crm/internal/models"
 	"real_estate_crm/internal/repository"
 	"real_estate_crm/internal/utils"
 )
@@ -155,6 +156,19 @@ func BookMeeting(c *gin.Context) {
 		return
 	}
 
+	// Calculate end time (duration in minutes)
+	endTime := req.StartTime.Add(time.Duration(req.DurationMinutes) * time.Minute)
+
+	// Save to Meetings table
+	_, err = repository.DB.Exec(context.Background(),
+		`INSERT INTO meetings (lead_id, agent_id, title, provider, meeting_link, start_time, end_time) 
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+		req.LeadID, uid, req.Title, req.Provider, meetingLink, req.StartTime, endTime)
+
+	if err != nil {
+		fmt.Printf("Error saving to meetings table: %v\n", err)
+	}
+
 	// Log Interaction
 	content := fmt.Sprintf("Meeting scheduled: %s\nLink: %s\nTime: %s", req.Title, meetingLink, req.StartTime.Format(time.RFC3339))
 	_, _ = repository.DB.Exec(context.Background(),
@@ -170,4 +184,62 @@ func BookMeeting(c *gin.Context) {
 		"meeting_link": meetingLink,
 		"status":       "Meeting booked successfully",
 	})
+}
+
+func GetMeetings(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	uid := int(userID.(float64))
+	role, _ := c.Get("userRole")
+	
+	perms, exists := c.Get("permissions")
+	canViewAll := false
+	if exists {
+		p := perms.(models.RolePermission)
+		canViewAll = p.CanViewAll
+	}
+	if role == "admin" {
+		canViewAll = true
+	}
+
+	query := `
+		SELECT m.id, m.lead_id, m.agent_id, m.title, m.provider, m.meeting_link, m.start_time, m.end_time, m.status, m.created_at,
+		       l.name as lead_name, u.name as agent_name
+		FROM meetings m
+		JOIN leads l ON m.lead_id = l.id
+		JOIN users u ON m.agent_id = u.id
+	`
+	var args []interface{}
+	if !canViewAll {
+		query += " WHERE m.agent_id = $1"
+		args = append(args, uid)
+	}
+
+	query += " ORDER BY m.start_time ASC"
+
+	rows, err := repository.DB.Query(context.Background(), query, args...)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error: " + err.Error()})
+		return
+	}
+	defer rows.Close()
+
+	var meetings []models.MeetingDetails
+	for rows.Next() {
+		var m models.MeetingDetails
+		err := rows.Scan(
+			&m.ID, &m.LeadID, &m.AgentID, &m.Title, &m.Provider, &m.MeetingLink, &m.StartTime, &m.EndTime, &m.Status, &m.CreatedAt,
+			&m.LeadName, &m.AgentName,
+		)
+		if err != nil {
+			fmt.Printf("Scan error: %v\n", err)
+			continue
+		}
+		meetings = append(meetings, m)
+	}
+
+	if meetings == nil {
+		meetings = []models.MeetingDetails{}
+	}
+
+	c.JSON(http.StatusOK, meetings)
 }

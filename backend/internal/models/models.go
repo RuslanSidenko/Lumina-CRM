@@ -21,6 +21,25 @@ type OAuthToken struct {
 	Expiry       time.Time `json:"expiry"`
 }
 
+type Meeting struct {
+	ID          int       `json:"id"`
+	LeadID      int       `json:"lead_id"`
+	AgentID     int       `json:"agent_id"`
+	Title       string    `json:"title"`
+	Provider    string    `json:"provider"`
+	MeetingLink string    `json:"meeting_link"`
+	StartTime   time.Time `json:"start_time"`
+	EndTime     time.Time `json:"end_time"`
+	Status      string    `json:"status"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+type MeetingDetails struct {
+	Meeting
+	LeadName  string `json:"lead_name"`
+	AgentName string `json:"agent_name"`
+}
+
 type Lead struct {
 	ID         int       `json:"id"`
 	Name       string    `json:"name"`
