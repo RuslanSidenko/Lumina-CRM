@@ -219,6 +219,15 @@ func SeedDatabase() {
 		expires_at TIMESTAMP NOT NULL,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);
+	CREATE TABLE IF NOT EXISTS user_oauth_tokens (
+		id SERIAL PRIMARY KEY,
+		user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+		provider VARCHAR(20) NOT NULL, -- 'google' or 'zoom'
+		access_token TEXT NOT NULL,
+		refresh_token TEXT,
+		expiry TIMESTAMP,
+		UNIQUE(user_id, provider)
+	);
 	`
 
 	

@@ -20,6 +20,7 @@ import BackupManagement from './BackupManagement';
 import AutomationManagement from './AutomationManagement';
 import MandatoryChangePasswordModal from './MandatoryChangePasswordModal';
 import Notification from './Notification';
+import MeetingConnections from './MeetingConnections';
 
 import { Lead, Property } from '../types';
 import { API_BASE } from '../config';
@@ -205,7 +206,12 @@ export default function DashboardClient({ initialLeads, initialProperties, token
           {activeTab === 'API'      && role === 'admin' && <APIKeyManagement token={token} />}
           {activeTab === 'Backups'  && role === 'admin' && <BackupManagement token={token} notify={notify} />}
           {activeTab === 'Automation' && role === 'admin' && <AutomationManagement token={token} />}
-          {activeTab === 'Settings' && <ChangePassword token={token} />}
+          {activeTab === 'Settings' && (
+            <div className="space-y-8 animate-slide-up">
+              <ChangePassword token={token} />
+              <MeetingConnections token={token} notify={notify} />
+            </div>
+          )}
         </main>
       </div>
 

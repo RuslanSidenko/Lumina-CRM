@@ -148,6 +148,13 @@ func main() {
 			// WhatsApp Chat Interface
 			protected.GET("/whatsapp/chats/:lead_id", handlers.GetWhatsAppChats)
 			protected.POST("/whatsapp/send", handlers.SendWhatsAppMessage)
+
+			// Meetings & Calendar
+			protected.GET("/meetings/auth", handlers.GetMeetingAuthURL)
+			protected.GET("/meetings/callback/:provider", handlers.MeetingOAuthCallback)
+			protected.GET("/meetings/connections", handlers.GetMeetingConnections)
+			protected.DELETE("/meetings/connections/:provider", handlers.DisconnectMeetingService)
+			protected.POST("/meetings/book", handlers.BookMeeting)
 		}
 
 		// Public Invitation validation and fulfillment

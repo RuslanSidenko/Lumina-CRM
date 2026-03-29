@@ -6,6 +6,7 @@ import InteractionLog from './InteractionLog';
 import TaskManager from './TaskManager';
 import LeadFieldsView from './LeadFieldsView';
 import WhatsAppChat from './WhatsAppChat';
+import MeetingBooking from './MeetingBooking';
 
 interface LeadDetailsModalProps {
   lead: Lead;
@@ -97,7 +98,10 @@ export default function LeadDetailsModal({ lead, token, onClose, onUpdate, notif
           {activeTab === 'details' ? (
             <>
               <LeadFieldsView lead={lead} token={token} onUpdate={onUpdate} notify={notify} />
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4 border-t border-n-500/40">
+              <div className="pt-4 border-t border-n-500/40">
+                <MeetingBooking leadId={lead.id} token={token} notify={notify} onSuccess={onUpdate} />
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8 pt-4">
                 <InteractionLog leadId={lead.id} token={token} />
                 <TaskManager leadId={lead.id} token={token} />
               </div>

@@ -12,6 +12,15 @@ type User struct {
 	CreatedAt    time.Time `json:"created_at"`
 }
 
+type OAuthToken struct {
+	ID           int       `json:"id"`
+	UserID       int       `json:"user_id"`
+	Provider     string    `json:"provider"`
+	AccessToken  string    `json:"access_token"`
+	RefreshToken string    `json:"refresh_token"`
+	Expiry       time.Time `json:"expiry"`
+}
+
 type Lead struct {
 	ID         int       `json:"id"`
 	Name       string    `json:"name"`
