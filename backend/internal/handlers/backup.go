@@ -21,7 +21,7 @@ func TriggerBackup(c *gin.Context) {
 	defer utils.CleanUp(path)
 
 	// 2. Upload to S3
-	err = utils.UploadToS3(path)
+	err = utils.UploadBackupFileToS3(path)
 	if err != nil {
 		utils.UpdateBackupStatus("failed", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload backup to S3: " + err.Error()})

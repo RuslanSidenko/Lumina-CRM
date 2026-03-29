@@ -57,8 +57,8 @@ func RunBackup() (string, error) {
 	return tempFile, nil
 }
 
-// UploadToS3 uploads a file to the configured S3 bucket using the modern TransferManager
-func UploadToS3(filePath string) error {
+// UploadBackupFileToS3 uploads a file to the configured S3 bucket using the modern TransferManager
+func UploadBackupFileToS3(filePath string) error {
 	bucket := os.Getenv("S3_BUCKET")
 	accessKey := os.Getenv("S3_ACCESS_KEY")
 	secretKey := os.Getenv("S3_SECRET_KEY")
@@ -178,7 +178,7 @@ func StartAutoBackup() {
 				continue
 			}
 
-			err = UploadToS3(path)
+			err = UploadBackupFileToS3(path)
 			if err != nil {
 				log.Printf("Auto-backup failed (UPLOAD): %v", err)
 				UpdateBackupStatus("failed", err)

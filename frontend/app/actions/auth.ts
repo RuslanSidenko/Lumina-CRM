@@ -19,12 +19,19 @@ export async function getAccessToken() {
     });
     if (res.ok) {
       const data = await res.json();
-      cookieStore.set('crm_token', data.token, { 
-        path: '/', 
-        maxAge: 60 * 15, 
-        httpOnly: true, 
-        secure: process.env.NODE_ENV === 'production' 
-      });
+      try {
+        cookieStore.set('crm_token', data.token, { 
+          path: '/', 
+          maxAge: 60 * 15, 
+          httpOnly: true, 
+          secure: process.env.NODE_ENV === 'production' 
+        });
+      } catch (e) {
+        // This error happens if getAccessToken is called during SSR (Server Component render).
+        // We still return the token so the current page can render, but the cookie won't persist
+        // until a client-side interaction or Middleware sets it.
+        console.warn("getAccessToken: Could not set cookie during SSR. Token returned for current request.");
+      }
       return data.token;
     }
   } catch (e) {
