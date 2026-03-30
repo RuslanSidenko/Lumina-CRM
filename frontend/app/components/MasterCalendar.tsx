@@ -66,7 +66,7 @@ export default function MasterCalendar({ token, onLeadClick }: MasterCalendarPro
     
     // Previous month padding
     for (let i = 0; i < firstDay; i++) {
-      days.push(<div key={`pad-${i}`} className="h-32 border-b border-r border-n-500/20 bg-n-800/5"></div>);
+      days.push(<div key={`pad-${i}`} className="h-32 border-b border-r border-n-500/20 bg-n-800/10"></div>);
     }
 
     // Actual days
@@ -78,7 +78,7 @@ export default function MasterCalendar({ token, onLeadClick }: MasterCalendarPro
       days.push(
         <div key={d} className={`h-32 border-b border-r border-n-500/20 p-2 overflow-y-auto hover:bg-white/[0.02] transition-colors ${isToday ? 'bg-accent-500/5' : ''}`}>
           <div className="flex justify-between items-center mb-1">
-            <span className={`text-xs font-bold ${isToday ? 'text-accent-400' : 'text-n-400'}`}>{d}</span>
+            <span className={`text-xs font-bold ${isToday ? 'text-accent-400' : 'text-n-200'}`}>{d}</span>
           </div>
           <div className="space-y-1">
             {dayMeetings.map(m => (
@@ -87,8 +87,8 @@ export default function MasterCalendar({ token, onLeadClick }: MasterCalendarPro
                 onClick={() => onLeadClick(m.lead_id)}
                 className={`w-full text-left p-1 rounded text-[10px] truncate border group transition-all ${
                   m.provider === 'google' 
-                    ? 'bg-blue-500/10 border-blue-500/30 text-blue-300 hover:bg-blue-500/20' 
-                    : 'bg-purple-500/10 border-purple-500/30 text-purple-300 hover:bg-purple-500/20'
+                    ? 'bg-blue-500/15 border-blue-500/30 text-blue-100 hover:bg-blue-500/25' 
+                    : 'bg-purple-500/15 border-purple-500/30 text-purple-100 hover:bg-purple-500/25'
                 }`}
               >
                 <div className="font-bold flex items-center gap-1">
@@ -106,8 +106,65 @@ export default function MasterCalendar({ token, onLeadClick }: MasterCalendarPro
     return days;
   };
 
+  // Assign side-by-side columns to overlapping meetings
+  const layoutOverlapping = (dayMeetings: Meeting[]) => {
+    if (dayMeetings.length === 0) return [];
+
+    // Sort by start time, then by duration (longer first)
+    const sorted = [...dayMeetings].sort((a, b) => {
+      const diff = new Date(a.start_time).getTime() - new Date(b.start_time).getTime();
+      if (diff !== 0) return diff;
+      return (new Date(b.end_time).getTime() - new Date(b.start_time).getTime()) -
+             (new Date(a.end_time).getTime() - new Date(a.start_time).getTime());
+    });
+
+    const columns: { end: number; meeting: Meeting }[][] = [];
+
+    for (const m of sorted) {
+      const start = new Date(m.start_time).getTime();
+      const end = new Date(m.end_time).getTime();
+
+      // Find first column where this meeting doesn't overlap
+      let placed = false;
+      for (let col = 0; col < columns.length; col++) {
+        const lastInCol = columns[col][columns[col].length - 1];
+        if (lastInCol.end <= start) {
+          columns[col].push({ end, meeting: m });
+          placed = true;
+          break;
+        }
+      }
+      if (!placed) {
+        columns.push([{ end, meeting: m }]);
+      }
+    }
+
+    // Build result: for each meeting, determine its column index and how many columns overlap at that point
+    const result: { meeting: Meeting; colIndex: number; totalCols: number }[] = [];
+    for (let col = 0; col < columns.length; col++) {
+      for (const entry of columns[col]) {
+        // Count how many columns have an event overlapping with this one
+        const mStart = new Date(entry.meeting.start_time).getTime();
+        const mEnd = new Date(entry.meeting.end_time).getTime();
+        let maxCols = columns.length;
+        // Tighten: only count columns that actually overlap this specific meeting
+        let overlapping = 0;
+        for (let c = 0; c < columns.length; c++) {
+          const hasOverlap = columns[c].some(e => {
+            const eStart = new Date(e.meeting.start_time).getTime();
+            const eEnd = new Date(e.meeting.end_time).getTime();
+            return eStart < mEnd && eEnd > mStart;
+          });
+          if (hasOverlap) overlapping++;
+        }
+        result.push({ meeting: entry.meeting, colIndex: col, totalCols: overlapping });
+      }
+    }
+
+    return result;
+  };
+
   const renderWeekView = () => {
-    // Basic week view logic
     const startOfWeek = new Date(currentDate);
     startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
     
@@ -118,58 +175,94 @@ export default function MasterCalendar({ token, onLeadClick }: MasterCalendarPro
         weekDays.push(d);
     }
 
+    const HOUR_HEIGHT = 100; // px per hour
+    const TOTAL_HEIGHT = 24 * HOUR_HEIGHT;
+
     return (
         <div className="flex flex-col h-full overflow-hidden">
-            <div className="grid grid-cols-7 border-b border-n-500/40 divide-x divide-n-500/40">
-                {weekDays.map(d => (
-                    <div key={d.toISOString()} className="p-4 text-center">
-                        <div className="text-[10px] uppercase tracking-widest text-n-500 font-black">{d.toLocaleDateString('en-US', { weekday: 'short' })}</div>
-                        <div className={`text-xl font-black mt-1 ${d.toDateString() === new Date().toDateString() ? 'text-accent-400' : 'text-n-50'}`}>{d.getDate()}</div>
-                    </div>
-                ))}
-            </div>
-            <div className="flex-1 overflow-y-auto relative">
-                <div className="grid grid-cols-7 divide-x divide-n-500/20 h-[1000px] absolute inset-0">
-                   {weekDays.map(d => {
-                        const dateStr = d.toISOString().split('T')[0];
-                        const dayMeetings = meetings.filter(m => m.start_time.startsWith(dateStr));
-                        return (
-                            <div key={d.toISOString()} className="relative h-full">
-                                {dayMeetings.map(m => {
-                                    const date = new Date(m.start_time);
-                                    const hour = date.getHours();
-                                    const minute = date.getMinutes();
-                                    const top = (hour * 60 + minute) * (1000 / (24 * 60));
-                                    const duration = (new Date(m.end_time).getTime() - date.getTime()) / (1000 * 60);
-                                    const height = duration * (1000 / (24 * 60));
-
-                                    return (
-                                        <button
-                                            key={m.id}
-                                            onClick={() => onLeadClick(m.lead_id)}
-                                            style={{ top: `${top}px`, height: `${height}px` }}
-                                            className={`absolute left-1 right-1 p-2 rounded text-[10px] border shadow-lg group transition-all z-10 ${
-                                                m.provider === 'google' 
-                                                ? 'bg-blue-500/20 border-blue-500/40 text-blue-200 hover:bg-blue-500/30' 
-                                                : 'bg-purple-500/20 border-purple-500/40 text-purple-200 hover:bg-purple-500/30'
-                                            }`}
-                                        >
-                                            <div className="font-black flex items-center justify-between">
-                                                <span>{new Date(m.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                                <span className="opacity-60 uppercase text-[8px]">{m.provider}</span>
-                                            </div>
-                                            <div className="font-bold mt-1 line-clamp-1">{m.title}</div>
-                                            <div className="mt-0.5 opacity-80 line-clamp-1 italic">{m.lead_name}</div>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        );
-                   })}
+            {/* Header row: time gutter + 7 day columns */}
+            <div className="flex border-b border-n-500/40 shrink-0">
+                <div className="w-14 shrink-0 border-r border-n-500/40" />
+                <div className="flex-1 grid grid-cols-7 divide-x divide-n-500/40">
+                    {weekDays.map(d => (
+                        <div key={d.toISOString()} className="p-4 text-center">
+                            <div className="text-[10px] uppercase tracking-widest text-n-300 font-black">{d.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                            <div className={`text-xl font-black mt-1 ${d.toDateString() === new Date().toDateString() ? 'text-accent-400' : 'text-n-50'}`}>{d.getDate()}</div>
+                        </div>
+                    ))}
                 </div>
-                {/* Time Indicators */}
-                <div className="pointer-events-none sticky left-0 text-[9px] font-bold text-n-600 space-y-[41.6px] pt-[20px] pl-1">
-                    {Array.from({length: 24}).map((_, i) => <div key={i}>{String(i).padStart(2, '0')}:00</div>)}
+            </div>
+            {/* Scrollable body: time gutter + day columns */}
+            <div className="flex-1 overflow-y-auto">
+                <div className="flex" style={{ height: `${TOTAL_HEIGHT}px` }}>
+                    {/* Time gutter */}
+                    <div className="w-14 shrink-0 relative border-r border-n-500/20">
+                        {Array.from({ length: 24 }).map((_, i) => (
+                            <div
+                                key={i}
+                                className="absolute right-2 text-[10px] font-bold text-n-300 -translate-y-1/2"
+                                style={{ top: `${i * HOUR_HEIGHT}px` }}
+                            >
+                                {i > 0 ? `${String(i).padStart(2, '0')}:00` : ''}
+                            </div>
+                        ))}
+                    </div>
+                    {/* Day columns */}
+                    <div className="flex-1 grid grid-cols-7 divide-x divide-n-500/20 relative">
+                        {/* Horizontal hour lines */}
+                        {Array.from({ length: 24 }).map((_, i) => (
+                            <div
+                                key={`line-${i}`}
+                                className="absolute left-0 right-0 border-t border-n-500/10"
+                                style={{ top: `${i * HOUR_HEIGHT}px` }}
+                            />
+                        ))}
+                        {weekDays.map(d => {
+                            const dateStr = d.toISOString().split('T')[0];
+                            const dayMeetings = meetings.filter(m => m.start_time.startsWith(dateStr));
+                            const laid = layoutOverlapping(dayMeetings);
+                            return (
+                                <div key={d.toISOString()} className="relative h-full">
+                                    {laid.map(({ meeting: m, colIndex, totalCols }) => {
+                                        const date = new Date(m.start_time);
+                                        const hour = date.getHours();
+                                        const minute = date.getMinutes();
+                                        const top = (hour * 60 + minute) * (HOUR_HEIGHT / 60);
+                                        const duration = (new Date(m.end_time).getTime() - date.getTime()) / (1000 * 60);
+                                        const height = Math.max(56, duration * (HOUR_HEIGHT / 60));
+
+                                        const widthPct = 100 / totalCols;
+                                        const leftPct = colIndex * widthPct;
+
+                                        return (
+                                            <button
+                                                key={m.id}
+                                                onClick={() => onLeadClick(m.lead_id)}
+                                                style={{
+                                                    top: `${top}px`,
+                                                    height: `${height}px`,
+                                                    left: `calc(${leftPct}% + 2px)`,
+                                                    width: `calc(${widthPct}% - 4px)`,
+                                                }}
+                                                className={`absolute p-1.5 rounded-md text-[11px] border shadow-lg group transition-all z-10 overflow-hidden ${
+                                                    m.provider === 'google' 
+                                                    ? 'bg-blue-500/20 border-blue-500/40 text-blue-50 hover:bg-blue-500/30' 
+                                                    : 'bg-purple-500/20 border-purple-500/40 text-purple-50 hover:bg-purple-500/30'
+                                                }`}
+                                            >
+                                                <div className="font-black flex items-center justify-between leading-tight">
+                                                    <span>{new Date(m.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
+                                                    <span className="opacity-60 uppercase text-[8px]">{m.provider}</span>
+                                                </div>
+                                                <div className="font-bold mt-0.5 truncate leading-tight">{m.title}</div>
+                                                <div className="mt-0.5 opacity-80 truncate italic leading-tight">{m.lead_name}</div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
         </div>
@@ -228,7 +321,7 @@ export default function MasterCalendar({ token, onLeadClick }: MasterCalendarPro
         {view === 'month' ? (
           <div className="flex-1 grid grid-cols-7">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-              <div key={day} className="py-3 text-[10px] font-black uppercase tracking-widest text-center text-n-500 bg-black/20 border-b border-r border-n-500/20">
+              <div key={day} className="py-3 text-[10px] font-black uppercase tracking-widest text-center text-n-300 bg-black/20 border-b border-r border-n-500/20">
                 {day}
               </div>
             ))}
