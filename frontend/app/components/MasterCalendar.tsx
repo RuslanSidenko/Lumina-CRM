@@ -19,7 +19,7 @@ interface Meeting {
 
 interface MasterCalendarProps {
   token: string;
-  onLeadClick: (lead: any) => void;
+  onLeadClick: (leadId: number) => void;
 }
 
 export default function MasterCalendar({ token, onLeadClick }: MasterCalendarProps) {
@@ -84,7 +84,7 @@ export default function MasterCalendar({ token, onLeadClick }: MasterCalendarPro
             {dayMeetings.map(m => (
               <button
                 key={m.id}
-                onClick={() => onLeadClick({ id: m.lead_id, name: m.lead_name })}
+                onClick={() => onLeadClick(m.lead_id)}
                 className={`w-full text-left p-1 rounded text-[10px] truncate border group transition-all ${
                   m.provider === 'google' 
                     ? 'bg-blue-500/10 border-blue-500/30 text-blue-300 hover:bg-blue-500/20' 
@@ -146,7 +146,7 @@ export default function MasterCalendar({ token, onLeadClick }: MasterCalendarPro
                                     return (
                                         <button
                                             key={m.id}
-                                            onClick={() => onLeadClick({ id: m.lead_id, name: m.lead_name })}
+                                            onClick={() => onLeadClick(m.lead_id)}
                                             style={{ top: `${top}px`, height: `${height}px` }}
                                             className={`absolute left-1 right-1 p-2 rounded text-[10px] border shadow-lg group transition-all z-10 ${
                                                 m.provider === 'google' 

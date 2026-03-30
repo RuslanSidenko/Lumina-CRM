@@ -117,13 +117,30 @@ export default function DashboardClient({ initialLeads, initialProperties, token
     if (activeTab === 'Deals') setShowAddDeal(true);
   };
 
-  const openLeadById = (id: number) => {
+  const openLeadById = async (id: number) => {
     const lead = leads.find(l => l.id === id);
     if (lead) {
       setSelectedLead(lead);
-    } else {
-      notify("Lead not found or no permission to view", "error");
+      return;
     }
+    // Lead not in local state — fetch it directly from API
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/leads`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const allLeads: Lead[] = await res.json();
+        setLeads(allLeads);
+        const fetched = allLeads.find(l => l.id === id);
+        if (fetched) {
+          setSelectedLead(fetched);
+          return;
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    notify("Lead not found or no permission to view", "error");
   };
 
   const canAdd = ['Leads', 'Properties', 'Deals'].includes(activeTab);
