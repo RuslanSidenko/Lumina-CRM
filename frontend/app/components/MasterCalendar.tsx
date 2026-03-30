@@ -71,6 +71,25 @@ export default function MasterCalendar({ token, onLeadClick }: MasterCalendarPro
     }
   };
 
+  const cancelMeeting = async (id: number) => {
+    if (!confirm("Are you sure you want to cancel this meeting?")) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/meetings/${id}/cancel`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        fetchMeetings();
+        setTooltip(null);
+      } else {
+        const err = await res.json();
+        alert(err.error || "Failed to cancel meeting");
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const navigateMonth = (direction: number) => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + direction, 1));
   };
@@ -113,13 +132,15 @@ export default function MasterCalendar({ token, onLeadClick }: MasterCalendarPro
                 onMouseEnter={() => setTooltip(m)}
                 onMouseLeave={() => setTooltip(null)}
                 className={`w-full text-left p-1 rounded text-[10px] border group transition-all ${
-                  m.provider === 'google'
-                    ? 'bg-blue-500/15 border-blue-500/30 text-blue-100 hover:bg-blue-500/25'
-                    : 'bg-purple-500/15 border-purple-500/30 text-purple-100 hover:bg-purple-500/25'
+                  m.status === 'cancelled'
+                    ? 'bg-n-800/50 border-n-500/10 text-n-500 line-through opacity-60'
+                    : m.provider === 'google'
+                      ? 'bg-blue-500/15 border-blue-500/30 text-blue-100 hover:bg-blue-500/25'
+                      : 'bg-purple-500/15 border-purple-500/30 text-purple-100 hover:bg-purple-500/25'
                 }`}
               >
                 <div className="font-bold flex items-center gap-1">
-                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${m.provider === 'google' ? 'bg-blue-400' : 'bg-purple-400'}`} />
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${m.status === 'cancelled' ? 'bg-n-600' : m.provider === 'google' ? 'bg-blue-400' : 'bg-purple-400'}`} />
                   {toLocalTime(m.start_time)}
                 </div>
                 <div className="truncate opacity-90">{m.title}</div>
@@ -301,15 +322,17 @@ export default function MasterCalendar({ token, onLeadClick }: MasterCalendarPro
                             width: `calc(${widthPct}% - 4px)`,
                           }}
                           className={`absolute p-1.5 rounded-md text-[11px] border shadow-md transition-all z-10 overflow-hidden text-left ${
-                            isGoogle
-                              ? 'bg-blue-500/20 border-blue-500/40 text-blue-50 hover:bg-blue-500/30'
-                              : 'bg-purple-500/20 border-purple-500/40 text-purple-50 hover:bg-purple-500/30'
+                            m.status === 'cancelled'
+                              ? 'bg-n-800/80 border-n-500/10 text-n-500 line-through grayscale opacity-50'
+                              : isGoogle
+                                ? 'bg-blue-500/20 border-blue-500/40 text-blue-50 hover:bg-blue-500/30'
+                                : 'bg-purple-500/20 border-purple-500/40 text-purple-50 hover:bg-purple-500/30'
                           }`}
                         >
                           <div className="font-black flex items-center justify-between leading-tight">
                             <span>{toLocalTime(m.start_time)}</span>
-                            <span className={`text-[8px] uppercase font-bold px-1 py-0.5 rounded ${isGoogle ? 'bg-blue-500/30' : 'bg-purple-500/30'}`}>
-                              {m.provider === 'google' ? 'GMeet' : 'Zoom'}
+                            <span className={`text-[8px] uppercase font-bold px-1 py-0.5 rounded ${m.status === 'cancelled' ? 'bg-n-700/50' : isGoogle ? 'bg-blue-500/30' : 'bg-purple-500/30'}`}>
+                              {m.status === 'cancelled' ? 'Cancelled' : m.provider === 'google' ? 'GMeet' : 'Zoom'}
                             </span>
                           </div>
                           <div className="font-bold mt-0.5 truncate leading-tight">{m.title}</div>
@@ -332,37 +355,57 @@ export default function MasterCalendar({ token, onLeadClick }: MasterCalendarPro
     );
   };
 
-  // ── Tooltip popup ─────────────────────────────────────────────────────────
   const renderTooltip = () => {
     if (!tooltip) return null;
     const isGoogle = tooltip.provider === 'google';
+    const isPast = new Date(tooltip.start_time) < new Date();
+    const isCancelled = tooltip.status === 'cancelled';
+
     return (
-      <div className="fixed bottom-6 right-6 z-50 w-72 card p-4 border border-n-500/40 shadow-2xl bg-n-900/95 backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 duration-200 pointer-events-none">
+      <div 
+        className="fixed bottom-6 right-6 z-50 w-72 card p-4 border border-n-500/40 shadow-2xl bg-n-900/95 backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 duration-200"
+        onMouseEnter={() => setTooltip(tooltip)}
+        onMouseLeave={() => setTooltip(null)}
+      >
         <div className="flex items-start gap-3">
-          <div className={`w-2 h-full min-h-[3rem] rounded-full shrink-0 ${isGoogle ? 'bg-blue-400' : 'bg-purple-400'}`} />
+          <div className={`w-2 h-full min-h-[3rem] rounded-full shrink-0 ${isCancelled ? 'bg-n-600' : isGoogle ? 'bg-blue-400' : 'bg-purple-400'}`} />
           <div className="flex-1 min-w-0">
-            <div className="text-xs font-black text-n-50 truncate">{tooltip.title}</div>
+            <div className={`text-xs font-black text-n-50 truncate ${isCancelled ? 'line-through opacity-60' : ''}`}>{tooltip.title}</div>
             <div className="text-[11px] text-n-300 mt-1">
               🕐 {toLocalTime(tooltip.start_time)} – {toLocalTime(tooltip.end_time)}
             </div>
             <div className="text-[11px] text-n-300">📅 {new Date(tooltip.start_time).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</div>
             <div className="text-[11px] text-n-300 mt-1">👤 Lead: <span className="text-n-100 font-semibold">{tooltip.lead_name}</span></div>
             <div className="text-[11px] text-n-300">🗓 Agent: <span className="text-n-100 font-semibold">{tooltip.agent_name}</span></div>
-            <div className="mt-2 flex items-center gap-2">
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${isGoogle ? 'bg-blue-500/20 text-blue-300' : 'bg-purple-500/20 text-purple-300'}`}>
-                {tooltip.provider === 'google' ? 'Google Meet' : 'Zoom'}
+            
+            <div className="mt-2 flex items-center gap-2 flex-wrap">
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${isCancelled ? 'bg-n-700 text-n-400' : isGoogle ? 'bg-blue-500/20 text-blue-300' : 'bg-purple-500/20 text-purple-300'}`}>
+                {isCancelled ? 'Cancelled' : tooltip.provider === 'google' ? 'Google Meet' : 'Zoom'}
               </span>
               <span className="text-[10px] text-n-500">Your time: {userTZ}</span>
             </div>
-            <a
-              href={tooltip.meeting_link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`mt-2 flex items-center gap-1 text-[11px] font-semibold underline truncate ${isGoogle ? 'text-blue-300' : 'text-purple-300'}`}
-              style={{ pointerEvents: 'auto' }}
-            >
-              Join meeting ↗
-            </a>
+
+            <div className="mt-3 flex items-center gap-3">
+              {tooltip.meeting_link && !isCancelled && !isPast && (
+                <a
+                  href={tooltip.meeting_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`flex items-center gap-1 text-[11px] font-semibold underline truncate ${isGoogle ? 'text-blue-300' : 'text-purple-300'}`}
+                >
+                  Join meeting ↗
+                </a>
+              )}
+
+              {!isCancelled && !isPast && (
+                <button
+                  onClick={() => cancelMeeting(tooltip.id)}
+                  className="text-[11px] font-bold text-red-400 hover:text-red-300 hover:underline flex items-center gap-1"
+                >
+                  Cancel Meeting
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>

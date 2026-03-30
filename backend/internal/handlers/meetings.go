@@ -243,3 +243,34 @@ func GetMeetings(c *gin.Context) {
 
 	c.JSON(http.StatusOK, meetings)
 }
+
+func CancelMeeting(c *gin.Context) {
+	meetingID := c.Param("id")
+	userID, _ := c.Get("userID")
+	uid := int(userID.(float64))
+	role, _ := c.Get("userRole")
+
+	// Verify ownership (unless admin)
+	if role.(string) != "admin" {
+		var agentID int
+		err := repository.DB.QueryRow(context.Background(),
+			"SELECT agent_id FROM meetings WHERE id = $1", meetingID).Scan(&agentID)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Meeting not found"})
+			return
+		}
+		if agentID != uid {
+			c.JSON(http.StatusForbidden, gin.H{"error": "You can only cancel your own meetings"})
+			return
+		}
+	}
+
+	_, err := repository.DB.Exec(context.Background(),
+		"UPDATE meetings SET status = 'cancelled' WHERE id = $1", meetingID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to cancel meeting"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "Meeting cancelled"})
+}

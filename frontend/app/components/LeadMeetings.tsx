@@ -132,22 +132,68 @@ export default function LeadMeetings({ leadId, token }: LeadMeetingsProps) {
             Booked by <span className="text-n-200 font-semibold ml-0.5">{m.agent_name}</span>
           </div>
 
-          {/* Join link */}
-          {m.meeting_link && (
-            <a
-              href={m.meeting_link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`inline-flex items-center gap-1 mt-1.5 text-[11px] font-semibold hover:underline ${
-                isPast ? 'text-n-400' : isGoogle ? 'text-blue-400' : 'text-purple-400'
-              }`}
-            >
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-              {isPast ? 'View recording link' : 'Join meeting'}
-            </a>
-          )}
+          {/* Actions */}
+          <div className="mt-2 flex items-center gap-3">
+            {m.meeting_link && !isPast && m.status !== 'cancelled' && (
+              <a
+                href={m.meeting_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`inline-flex items-center gap-1 text-[11px] font-semibold hover:underline ${
+                  isGoogle ? 'text-blue-400' : 'text-purple-400'
+                }`}
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+                Join meeting
+              </a>
+            )}
+            
+            {!isPast && m.status !== 'cancelled' && (
+              <button
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  if (!confirm("Are you sure you want to cancel this meeting?")) return;
+                  try {
+                    const res = await fetch(`${API_BASE}/api/v1/meetings/${m.id}/cancel`, {
+                      method: 'PATCH',
+                      headers: { Authorization: `Bearer ${token}` },
+                    });
+                    if (res.ok) {
+                      fetchMeetings();
+                    } else {
+                      const err = await res.json();
+                      alert(err.error || "Failed to cancel meeting");
+                    }
+                  } catch (err) {
+                    console.error(err);
+                  }
+                }}
+                className="text-[11px] font-semibold text-red-400 hover:text-red-300 hover:underline flex items-center gap-1"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Cancel
+              </button>
+            )}
+
+            {isPast && m.meeting_link && (
+              <span className="text-[11px] text-n-400 flex items-center gap-1 italic">
+                Recording/Link (Past)
+              </span>
+            )}
+            
+            {m.status === 'cancelled' && (
+              <span className="text-[11px] text-red-500/80 font-bold uppercase tracking-wider flex items-center gap-1">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+                Cancelled
+              </span>
+            )}
+          </div>
         </div>
       </div>
     );

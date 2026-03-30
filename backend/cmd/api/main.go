@@ -155,6 +155,7 @@ func main() {
 			protected.GET("/meetings/connections", handlers.GetMeetingConnections)
 			protected.DELETE("/meetings/connections/:provider", handlers.DisconnectMeetingService)
 			protected.POST("/meetings/book", handlers.BookMeeting)
+			protected.PATCH("/meetings/:id/cancel", handlers.CancelMeeting)
 			protected.GET("/meetings", middleware.RequirePermission("meetings", "view"), handlers.GetMeetings)
 		}
 
