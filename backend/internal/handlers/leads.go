@@ -20,17 +20,20 @@ func GetLeads(c *gin.Context) {
 	query := "SELECT id, name, phone, email, status, assigned_to, source, custom_fields, created_at FROM leads"
 	args := []interface{}{}
 
-	// RBAC row-level filtering
+	// RBAC row-level filtering:
+	// - admin: sees all
+	// - can_view_all: sees all
+	// - can_view (no can_view_all): sees leads assigned to them OR created by them
 	if role.(string) != "admin" && hasPerms {
 		p := perms.(models.RolePermission)
 		if !p.CanViewAll {
 			uid := int(userID.(float64))
-			query += " WHERE assigned_to = $1"
+			query += " WHERE (assigned_to = $1 OR created_by = $1)"
 			args = append(args, uid)
 		}
 	} else if role.(string) == "agent" { // Fallback for legacy
 		uid := int(userID.(float64))
-		query += " WHERE assigned_to = $1"
+		query += " WHERE (assigned_to = $1 OR created_by = $1)"
 		args = append(args, uid)
 	}
 	
@@ -52,10 +55,6 @@ func GetLeads(c *gin.Context) {
 			log.Println("Error scanning lead:", err)
 			continue
 		}
-		
-		// Field-level visibility is no longer restricted, only modification is.
-
-		
 		leads = append(leads, l)
 	}
 	if leads == nil {
@@ -63,6 +62,7 @@ func GetLeads(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, leads)
 }
+
 
 func CreateLead(c *gin.Context) {
 	var req models.CreateLeadRequest
@@ -72,16 +72,16 @@ func CreateLead(c *gin.Context) {
 	}
 
 	userID, _ := c.Get("userID")
-	_ = userID // Keep variable access for future-proofing if needed, but remove default assignment
-	
+	uid := int(userID.(float64))
+
 	if req.Source == "" {
 		req.Source = "manual"
 	}
 
 	var newID int
 	err := repository.DB.QueryRow(context.Background(),
-		"INSERT INTO leads (name, phone, email, status, assigned_to, source, custom_fields) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
-		req.Name, req.Phone, req.Email, req.Status, req.AssignedTo, req.Source, req.CustomFields).Scan(&newID)
+		"INSERT INTO leads (name, phone, email, status, assigned_to, source, custom_fields, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id",
+		req.Name, req.Phone, req.Email, req.Status, req.AssignedTo, req.Source, req.CustomFields, uid).Scan(&newID)
 
 	if err != nil {
 		log.Println("Failed to create lead:", err)
@@ -90,6 +90,7 @@ func CreateLead(c *gin.Context) {
 	}
 	c.JSON(http.StatusCreated, gin.H{"message": "Lead created successfully", "id": newID})
 }
+
 
 func UpdateLead(c *gin.Context) {
 	id := c.Param("id")

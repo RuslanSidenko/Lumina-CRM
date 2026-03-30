@@ -19,7 +19,11 @@ export default function AnalyticsDashboard({ token }: { token: string }) {
          headers: { Authorization: `Bearer ${token}` }
       })
          .then(res => res.json())
-         .then(setData);
+         .then(d => setData({
+            ...d,
+            deal_status_counts: d.deal_status_counts ?? {},
+            lead_status_counts: d.lead_status_counts ?? {},
+         }));
    }, []);
 
    if (!data) return <div className="p-12 text-center text-slate-500">Calculating insights...</div>;
@@ -29,7 +33,7 @@ export default function AnalyticsDashboard({ token }: { token: string }) {
          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <StatItem label="Total Leads" value={data.total_leads} color="text-brand-400" />
             <StatItem label="Active Listings" value={data.active_properties} color="text-blue-400" />
-            <StatItem label="Deals Closed" value={data.deal_status_counts['Closed'] || 0} color="text-green-400" />
+            <StatItem label="Deals Closed" value={(data.deal_status_counts ?? {})['Closed'] || 0} color="text-green-400" />
             <StatItem label="Closed Revenue" value={`$${(data.total_revenue / 1000).toFixed(1)}k`} color="text-emerald-400" />
          </div>
 

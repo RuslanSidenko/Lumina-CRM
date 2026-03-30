@@ -321,6 +321,9 @@ func SeedDatabase() {
 	if _, err := DB.Exec(context.Background(), "ALTER TABLE leads ADD COLUMN IF NOT EXISTS assigned_to INTEGER REFERENCES users(id) ON DELETE SET NULL"); err != nil {
 		log.Printf("Migration error (leads assigned_to): %v", err)
 	}
+	if _, err := DB.Exec(context.Background(), "ALTER TABLE leads ADD COLUMN IF NOT EXISTS created_by INTEGER REFERENCES users(id) ON DELETE SET NULL"); err != nil {
+		log.Printf("Migration error (leads created_by): %v", err)
+	}
 	if _, err := DB.Exec(context.Background(), "ALTER TABLE properties ADD COLUMN IF NOT EXISTS address VARCHAR(255)"); err != nil {
 		log.Printf("Migration error (properties address): %v", err)
 	}
