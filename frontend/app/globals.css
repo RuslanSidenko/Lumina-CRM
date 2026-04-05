@@ -43,14 +43,14 @@
            text-sm font-semibold transition-all duration-150 select-none;
     background-color: #1c1d26;
     border: 1px solid #2e3044;
-    color: #cbd5e1;
+    color: #e2e8f0;
   }
   .btn-secondary:hover { background-color: #252736; border-color: #3b3e55; }
 
   .btn-ghost {
     @apply inline-flex items-center justify-center px-3 py-1.5 rounded-md
            text-sm font-medium transition-all duration-150 select-none;
-    color: #94a3b8;
+    color: #cbd5e1;
   }
   .btn-ghost:hover { color: #f1f5f9; background-color: #252736; }
 
@@ -79,7 +79,7 @@
 
   .input-label {
     @apply block text-xs font-semibold uppercase tracking-wider mb-1.5;
-    color: #94a3b8;
+    color: #cbd5e1;
   }
 
   /* ── Cards ── */
@@ -152,7 +152,7 @@
   /* ── Utilities ── */
   .section-title {
     @apply text-[10px] font-bold uppercase tracking-widest;
-    color: #94a3b8;
+    color: #cbd5e1;
   }
   .gradient-text {
     @apply bg-clip-text text-transparent;

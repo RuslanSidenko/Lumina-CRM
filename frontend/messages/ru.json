@@ -56,7 +56,7 @@
     "filter_by_status": "Фильтр по статусу",
     "exclude_selected": "Исключить",
     "team_assignment": "Ответственный / Команда",
-    "unassigned_only": "Только без ответственного",
+    "unassigned_only": "Неназначенные",
     "specific_agent": "Конкретный менеджер",
     "creator": "Создатель",
     "created_by_agent": "Создал (Агент)",

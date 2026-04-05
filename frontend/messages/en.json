@@ -56,7 +56,7 @@
     "filter_by_status": "Filter by Status",
     "exclude_selected": "Exclude selected",
     "team_assignment": "Team / Assignment",
-    "unassigned_only": "Unassigned Only",
+    "unassigned_only": "Unassigned",
     "specific_agent": "Specific Lead Manager",
     "creator": "Creator",
     "created_by_agent": "Created By (Agent)",
