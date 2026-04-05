@@ -37,6 +37,7 @@ interface DashboardClientProps {
 export default function DashboardClient({ initialLeads, initialProperties, token, role }: DashboardClientProps) {
   const t = useTranslations('Dashboard');
   const ts = useTranslations('Settings');
+  const tc = useTranslations('Sidebar');
 
   const [activeTab, setActiveTab] = useState('Leads');
   const [leads, setLeads] = useState(initialLeads || []);
@@ -218,7 +219,7 @@ export default function DashboardClient({ initialLeads, initialProperties, token
       <div className="flex-1 ml-[220px] flex flex-col h-screen overflow-hidden">
         <header className="shrink-0 h-14 border-b border-n-500/60 bg-n-900/80 backdrop-blur-md px-6 flex items-center justify-between gap-4 z-40">
           <div className="flex items-center gap-3">
-            <h1 className="text-sm font-semibold text-n-50">{activeTab}</h1>
+            <h1 className="text-sm font-semibold text-n-50">{tc(activeTab === 'API' ? 'api' : activeTab.toLowerCase())}</h1>
             <span className="text-n-500">·</span>
             <span className="text-xs text-n-300 font-medium capitalize">{role} workspace</span>
           </div>

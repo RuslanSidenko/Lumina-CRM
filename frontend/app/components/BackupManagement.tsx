@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { API_BASE } from '../config';
+import { useTranslations } from 'next-intl';
 
 interface BackupManagementProps {
   token: string;
@@ -9,6 +10,7 @@ interface BackupManagementProps {
 }
 
 export default function BackupManagement({ token, notify }: BackupManagementProps) {
+  const t = useTranslations('Backups');
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ s3_active: false, daily_enabled: false, frequency: '24h', last_status: '', last_time: '' });
   const [message, setMessage] = useState('');
@@ -45,9 +47,9 @@ export default function BackupManagement({ token, notify }: BackupManagementProp
       });
       if (res.ok) {
         fetchStatus();
-        notify('Backup settings updated!');
+        notify(t('updated'));
       } else {
-        notify('Failed to update backup settings', 'error');
+        notify(t('failed'), 'error');
       }
     } finally {
       setSaving(false);
@@ -91,8 +93,8 @@ export default function BackupManagement({ token, notify }: BackupManagementProp
             </svg>
           </div>
           <div>
-            <h2 className="text-xl font-black text-n-50 tracking-tight">Cloud Snapshots</h2>
-            <p className="text-[11px] font-bold text-n-400 uppercase tracking-widest mt-0.5">Disaster Recovery & Redundancy</p>
+            <h2 className="text-xl font-black text-n-50 tracking-tight">{t('title')}</h2>
+            <p className="text-[11px] font-bold text-n-400 uppercase tracking-widest mt-0.5">{t('subtitle')}</p>
           </div>
         </div>
       </div>
@@ -108,11 +110,9 @@ export default function BackupManagement({ token, notify }: BackupManagementProp
         <div className="relative z-10 p-10 flex flex-col items-center text-center">
           <div className="max-w-md space-y-6">
             <div className="space-y-2">
-              <h3 className="text-lg font-bold text-n-50">On-Demand Infrastructure Backup</h3>
+              <h3 className="text-lg font-bold text-n-50">{t('on_demand_title')}</h3>
               <p className="text-sm text-n-300 leading-relaxed font-medium">
-                Immediately capture the current state of your relational database.
-                Our engine generates a binary stream, compresses it, and streams it
-                directly to your encrypted S3 storage.
+                {t('on_demand_desc')}
               </p>
             </div>
 
@@ -125,14 +125,14 @@ export default function BackupManagement({ token, notify }: BackupManagementProp
                 {loading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Synchronizing...</span>
+                    <span>{t('synchronizing')}</span>
                   </>
                 ) : (
                   <>
                     <svg className="w-5 h-5 group-hover:-translate-y-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
                     </svg>
-                    <span>Execute Cloud Sync</span>
+                    <span>{t('trigger_button')}</span>
                   </>
                 )}
               </button>
@@ -144,11 +144,11 @@ export default function BackupManagement({ token, notify }: BackupManagementProp
 
       <div className="card-hover p-6 border-n-500/50 bg-n-700/50 backdrop-blur-sm">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-[11px] font-extrabold text-n-300 uppercase tracking-[0.2em]">S3 Cloud Infrastructure</h3>
+          <h3 className="text-[11px] font-extrabold text-n-300 uppercase tracking-[0.2em]">{t('infrastructure_title')}</h3>
           <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-n-800/80 border border-n-600/50">
             <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${status.s3_active ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' : 'bg-red-500 shadow-[0_0_8px_#ef4444]'}`} />
             <span className={`text-[10px] font-bold uppercase tracking-wider ${status.s3_active ? 'text-emerald-400' : 'text-red-400'}`}>
-              {status.s3_active ? 'S3 Online' : 'S3 Offline'}
+              {status.s3_active ? t('s3_online') : t('s3_offline')}
             </span>
           </div>
         </div>
@@ -158,8 +158,8 @@ export default function BackupManagement({ token, notify }: BackupManagementProp
           <div className="group p-4 rounded-xl bg-n-800/40 border border-n-600/30 hover:border-accent-500/30 transition-all duration-300">
             <div className="flex items-center justify-between mb-3">
               <div className="space-y-1">
-                <span className="text-[10px] font-bold text-n-400 uppercase tracking-wider">Automation Engine</span>
-                <p className="text-xs font-semibold text-n-50">Auto-Backups</p>
+                <span className="text-[10px] font-bold text-n-400 uppercase tracking-wider">{t('automation_engine')}</span>
+                <p className="text-xs font-semibold text-n-50">{t('auto_backups')}</p>
               </div>
               <button
                 onClick={() => updateBackupSetting('backup_enabled', status.daily_enabled ? 'false' : 'true')}
@@ -170,15 +170,15 @@ export default function BackupManagement({ token, notify }: BackupManagementProp
               </button>
             </div>
             <p className="text-[10px] text-n-400 leading-normal">
-              Periodically sync your production database to secure S3 buckets.
+              {t('backups_desc')}
             </p>
           </div>
 
           {/* Frequency Control */}
           <div className="p-4 rounded-xl bg-n-800/40 border border-n-600/30 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-n-400 uppercase tracking-wider text-left">Sync Interval</span>
-              <span className="text-[10px] font-bold text-accent-400 bg-accent-500/10 px-2 py-0.5 rounded border border-accent-500/20">Frequency</span>
+              <span className="text-[10px] font-bold text-n-400 uppercase tracking-wider text-left">{t('sync_interval')}</span>
+              <span className="text-[10px] font-bold text-accent-400 bg-accent-500/10 px-2 py-0.5 rounded border border-accent-500/20">{t('frequency')}</span>
             </div>
             <div className="flex gap-1.5">
               {['1h', '6h', '12h', '24h'].map(f => (
@@ -213,7 +213,7 @@ export default function BackupManagement({ token, notify }: BackupManagementProp
                 </div>
                 <div>
                   <p className="text-[10px] font-black text-n-400 uppercase tracking-widest flex items-center gap-2">
-                    Cloud Sync Verification
+                    {t('verification')}
                     <span className={`w-1.5 h-1.5 rounded-full ${status.last_status === 'success' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
                   </p>
                   <p className="text-[13px] text-n-50 font-semibold mt-0.5">
@@ -224,7 +224,7 @@ export default function BackupManagement({ token, notify }: BackupManagementProp
                 </div>
               </div>
               <div className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter ${status.last_status === 'success' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/15 text-rose-400 border border-rose-500/20'}`}>
-                {status.last_status === 'success' ? 'Verified' : status.last_status}
+                {status.last_status === 'success' ? t('verified') : status.last_status}
               </div>
             </div>
           </div>

@@ -402,6 +402,11 @@ func SeedDatabase() {
 		_, _ = DB.Exec(context.Background(), 
 			"INSERT INTO custom_field_definitions (entity_type, label, label_translations, field_type, options) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING",
 			f.EntityType, f.Label, f.Translations, f.FieldType, f.Options)
+		
+		// One-time update only for these essential fields if translations are still empty/default
+		_, _ = DB.Exec(context.Background(), 
+			"UPDATE custom_field_definitions SET label_translations = $3 WHERE entity_type = $1 AND label = $2 AND (label_translations = '{}'::jsonb OR label_translations IS NULL)",
+			f.EntityType, f.Label, f.Translations)
 	}
 
 	// Add username column migration for existing tables

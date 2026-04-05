@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { API_BASE } from '../config';
+import { useTranslations } from 'next-intl';
 
 interface AutomationManagementProps {
   token: string;
@@ -13,6 +14,7 @@ interface Role {
 }
 
 export default function AutomationManagement({ token }: AutomationManagementProps) {
+  const t = useTranslations('Automation');
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [roles, setRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,7 +65,7 @@ export default function AutomationManagement({ token }: AutomationManagementProp
       });
       if (res.ok) {
         setSettings(prev => ({...prev, [key]: value}));
-        setMessage('Settings saved!');
+        setMessage(t('settings_saved'));
         setTimeout(() => setMessage(''), 3000);
       }
     } finally {
@@ -84,12 +86,12 @@ export default function AutomationManagement({ token }: AutomationManagementProp
   };
 
   const algorithms = [
-    { id: 'off', name: 'Disabled', desc: 'No automatic assignment' },
-    { id: 'round_robin', name: 'Round Robin', desc: 'Assigns in sequence to eligible members' },
-    { id: 'least_loaded', name: 'Least Loaded', desc: 'Assigns to members with fewest active items' }
+    { id: 'off', name: t('type_off'), desc: t('type_off_desc') },
+    { id: 'round_robin', name: t('type_round_robin'), desc: t('type_round_robin_desc') },
+    { id: 'least_loaded', name: t('type_least_loaded'), desc: t('type_least_loaded_desc') }
   ];
 
-  if (loading) return <div className="p-8 text-center text-n-200">Loading automation settings...</div>;
+  if (loading) return <div className="p-8 text-center text-n-200">{t('loading')}</div>;
 
   const prioritizeActive = settings['prioritize_active_users'] === 'true';
 
@@ -134,8 +136,8 @@ export default function AutomationManagement({ token }: AutomationManagementProp
         {currentAlgo !== 'off' && (
           <div className="bg-white/5 border border-white/5 rounded-2xl p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="text-xs font-bold text-n-100 uppercase tracking-widest">Eligible Roles</h4>
-              <span className="text-[10px] text-n-400 italic">Only users with selected roles will receive assignments</span>
+              <h4 className="text-xs font-bold text-n-100 uppercase tracking-widest">{t('eligible_roles')}</h4>
+              <span className="text-[10px] text-n-400 italic">{t('eligible_roles_help')}</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {roles.map(role => {
@@ -155,7 +157,7 @@ export default function AutomationManagement({ token }: AutomationManagementProp
                   </button>
                 )
               })}
-              {roles.length === 0 && <p className="text-xs text-n-400">No roles found.</p>}
+              {roles.length === 0 && <p className="text-xs text-n-400">{t('no_roles')}</p>}
             </div>
           </div>
         )}
@@ -167,14 +169,14 @@ export default function AutomationManagement({ token }: AutomationManagementProp
     <div className="animate-slide-up space-y-10 pb-10">
       <div className="flex items-center justify-between">
         <div>
-           <h1 className="text-2xl font-black text-n-50 tracking-tight">Automation Control</h1>
-           <p className="text-sm text-n-300">Set up rules for auto-assignment of incoming data</p>
+           <h1 className="text-2xl font-black text-n-50 tracking-tight">{t('title')}</h1>
+           <p className="text-sm text-n-300">{t('subtitle')}</p>
         </div>
         
         <div className="flex items-center gap-4 bg-white/5 border border-white/5 rounded-2xl p-4 px-6">
            <div className="text-right">
-              <p className="text-xs font-bold text-n-50">Filter Active Only</p>
-              <p className="text-[10px] text-n-400">Assignment only to users active in last 24h</p>
+              <p className="text-xs font-bold text-n-50">{t('filter_active')}</p>
+              <p className="text-[10px] text-n-400">{t('filter_active_desc')}</p>
            </div>
            <button 
              onClick={() => updateSetting('prioritize_active_users', prioritizeActive ? 'false' : 'true')}
@@ -188,8 +190,8 @@ export default function AutomationManagement({ token }: AutomationManagementProp
 
       <AutomationSection 
         type="lead" 
-        title="Lead Distribution" 
-        desc="Control which agents get assigned new incoming leads"
+        title={t('lead_dist')} 
+        desc={t('lead_dist_desc')}
         icon={<svg className="w-5 h-5 text-accent-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>}
       />
 
@@ -197,16 +199,16 @@ export default function AutomationManagement({ token }: AutomationManagementProp
 
       <AutomationSection 
         type="deal" 
-        title="Deal Assignment" 
-        desc="Configure automatic ownership for new deal opportunities"
+        title={t('deal_assign')} 
+        desc={t('deal_assign_desc')}
         icon={<svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
       />
 
       <div className="glass-panel p-6 border-white/5 mt-10">
         <div className="flex items-center justify-between">
            <div>
-              <h3 className="text-xs font-bold text-n-100 uppercase tracking-widest mb-1">Background Processing</h3>
-              <p className="text-[10px] text-n-400">System workers poll for unassigned records every 5 minutes</p>
+              <h3 className="text-xs font-bold text-n-100 uppercase tracking-widest mb-1">{t('background_proc')}</h3>
+              <p className="text-[10px] text-n-400">{t('background_proc_desc')}</p>
            </div>
            {message && (
              <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full font-bold border border-emerald-500/20 animate-in fade-in slide-in-from-right-4">
