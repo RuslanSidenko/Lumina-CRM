@@ -159,7 +159,7 @@ export default function AddLeadModal({ token, onClose, onSuccess }: AddLeadModal
                     required={field.is_required}
                     onChange={e => handleCustomFieldChange(field.label, e.target.value)}
                   >
-                    <option value="">{tl('select_field', {field: fieldLabel})}</option>
+                    <option value="">{fieldLabel}</option>
                     {(field.options || []).map((opt: string) => (
                       <option key={opt} value={opt}>{opt}</option>
                     ))}
@@ -168,7 +168,7 @@ export default function AddLeadModal({ token, onClose, onSuccess }: AddLeadModal
                   <input
                     type={field.field_type === 'number' ? 'number' : 'text'}
                     className="input-field"
-                    placeholder={tl('filter_field', {field: fieldLabel})}
+                    placeholder={fieldLabel + '...'}
                     required={field.is_required}
                     onChange={e => handleCustomFieldChange(field.label, e.target.value)}
                   />
@@ -190,7 +190,7 @@ export default function AddLeadModal({ token, onClose, onSuccess }: AddLeadModal
               className="btn-primary"
               disabled={loading}
             >
-              {loading ? tc('loading') : tl('apply_filters')}
+              {loading ? tc('loading') : t('add_lead')}
             </button>
           </div>
         </form>

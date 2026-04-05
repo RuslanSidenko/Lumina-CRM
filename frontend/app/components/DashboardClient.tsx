@@ -84,6 +84,12 @@ export default function DashboardClient({ initialLeads, initialProperties, token
     fetchCustomFields();
   }, []);
 
+  useEffect(() => {
+    if (activeTab === 'Leads') {
+      fetchCustomFields();
+    }
+  }, [activeTab]);
+
   const fetchCustomFields = async () => {
     try {
       const res = await fetch(`${API_BASE}/api/v1/custom-fields?entity_type=lead`, {
