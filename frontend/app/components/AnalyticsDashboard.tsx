@@ -2,6 +2,7 @@
 import { API_BASE } from '../config';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 
 interface AnalyticsData {
    total_leads: number;
@@ -12,6 +13,7 @@ interface AnalyticsData {
 }
 
 export default function AnalyticsDashboard({ token }: { token: string }) {
+   const t = useTranslations('Insights');
    const [data, setData] = useState<AnalyticsData | null>(null);
 
    useEffect(() => {
@@ -19,23 +21,27 @@ export default function AnalyticsDashboard({ token }: { token: string }) {
          headers: { Authorization: `Bearer ${token}` }
       })
          .then(res => res.json())
-         .then(setData);
+         .then(d => setData({
+            ...d,
+            deal_status_counts: d.deal_status_counts ?? {},
+            lead_status_counts: d.lead_status_counts ?? {},
+         }));
    }, []);
 
-   if (!data) return <div className="p-12 text-center text-slate-500">Calculating insights...</div>;
+   if (!data) return <div className="p-12 text-center text-slate-500">{t('calculating')}</div>;
 
    return (
       <div className="flex flex-col gap-8">
          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <StatItem label="Total Leads" value={data.total_leads} color="text-brand-400" />
-            <StatItem label="Active Listings" value={data.active_properties} color="text-blue-400" />
-            <StatItem label="Deals Closed" value={data.deal_status_counts['Closed'] || 0} color="text-green-400" />
-            <StatItem label="Closed Revenue" value={`$${(data.total_revenue / 1000).toFixed(1)}k`} color="text-emerald-400" />
+            <StatItem label={t('total_leads')} value={data.total_leads} color="text-brand-400" />
+            <StatItem label={t('active_listings')} value={data.active_properties} color="text-blue-400" />
+            <StatItem label={t('deals_closed')} value={(data.deal_status_counts ?? {})['Closed'] || 0} color="text-green-400" />
+            <StatItem label={t('closed_revenue')} value={`$${(data.total_revenue / 1000).toFixed(1)}k`} color="text-emerald-400" />
          </div>
 
          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="glass-panel p-6 flex flex-col gap-6">
-               <h3 className="text-lg font-bold">Lead Pipeline Status</h3>
+               <h3 className="text-lg font-bold">{t('lead_pipeline')}</h3>
                <div className="flex flex-col gap-4">
                   {Object.entries(data.lead_status_counts).map(([status, count]) => (
                      <div key={status} className="flex flex-col gap-2">
@@ -55,7 +61,7 @@ export default function AnalyticsDashboard({ token }: { token: string }) {
             </div>
 
             <div className="glass-panel p-6 flex flex-col gap-6">
-               <h3 className="text-lg font-bold">Deal Stages</h3>
+               <h3 className="text-lg font-bold">{t('deal_stages')}</h3>
                <div className="flex flex-col gap-4">
                   {Object.entries(data.deal_status_counts).map(([status, count]) => (
                      <div key={status} className="flex flex-col gap-2">

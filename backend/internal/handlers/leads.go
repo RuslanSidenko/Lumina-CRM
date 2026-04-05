@@ -2,8 +2,11 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
+	"reflect"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"real_estate_crm/internal/models"
@@ -15,21 +18,103 @@ func GetLeads(c *gin.Context) {
 	userID, _ := c.Get("userID")
 	perms, hasPerms := c.Get("permissions")
 
-	query := "SELECT id, name, phone, email, status, assigned_to, source, custom_fields, created_at FROM leads"
-	args := []interface{}{}
+	// Get query params
+	search := c.Query("search")
+	queryParams := c.Request.URL.Query()
+	statuses := queryParams["status"]
+	excludeStatus := c.Query("exclude_status") == "true"
+	unassignedOnly := c.Query("unassigned_only") == "true"
+	assignedTo := c.Query("assigned_to")
+	createdBy := c.Query("created_by")
+	source := c.Query("source")
+	startDate := c.Query("start_date")
+	endDate := c.Query("end_date")
 
-	// RBAC row-level filtering
+	query := "SELECT id, name, phone, email, status, assigned_to, source, custom_fields, created_at FROM leads WHERE 1=1"
+	args := []interface{}{}
+	argCount := 1
+
+	// Dynamic Filters
+	if search != "" {
+		query += fmt.Sprintf(" AND (name ILIKE $%d OR email ILIKE $%d OR phone LIKE $%d OR source ILIKE $%d)", argCount, argCount, argCount, argCount)
+		args = append(args, "%"+search+"%")
+		argCount++
+	}
+	
+	if len(statuses) > 0 {
+		operator := "IN"
+		if excludeStatus {
+			operator = "NOT IN"
+		}
+		
+		placeholders := []string{}
+		for _, s := range statuses {
+			if s == "" { continue }
+			placeholders = append(placeholders, fmt.Sprintf("$%d", argCount))
+			args = append(args, s)
+			argCount++
+		}
+		if len(placeholders) > 0 {
+			query += fmt.Sprintf(" AND status %s (%s)", operator, strings.Join(placeholders, ","))
+		}
+	}
+
+	if unassignedOnly {
+		query += " AND assigned_to IS NULL"
+	} else if assignedTo != "" {
+		query += fmt.Sprintf(" AND assigned_to = $%d", argCount)
+		args = append(args, assignedTo)
+		argCount++
+	}
+
+	if createdBy != "" {
+		query += fmt.Sprintf(" AND created_by = $%d", argCount)
+		args = append(args, createdBy)
+		argCount++
+	}
+
+	if source != "" {
+		query += fmt.Sprintf(" AND source = $%d", argCount)
+		args = append(args, source)
+		argCount++
+	}
+	
+	// Custom Fields Filtering (params starting with cf_)
+	for key, values := range queryParams {
+		if strings.HasPrefix(key, "cf_") && len(values) > 0 && values[0] != "" {
+			fieldName := strings.TrimPrefix(key, "cf_")
+			// We use ->> to get text value from JSONB and compare
+			query += fmt.Sprintf(" AND custom_fields ->> $%d ILIKE $%d", argCount, argCount+1)
+			args = append(args, fieldName, "%"+values[0]+"%")
+			argCount += 2
+		}
+	}
+
+	if startDate != "" {
+		query += fmt.Sprintf(" AND created_at >= $%d", argCount)
+		args = append(args, startDate)
+		argCount++
+	}
+	if endDate != "" {
+		query += fmt.Sprintf(" AND created_at <= $%d", argCount)
+		args = append(args, endDate)
+		argCount++
+	}
+
+	// RBAC row-level filtering:
 	if role.(string) != "admin" && hasPerms {
 		p := perms.(models.RolePermission)
 		if !p.CanViewAll {
 			uid := int(userID.(float64))
-			query += " WHERE assigned_to = $1"
+			query += fmt.Sprintf(" AND (assigned_to = $%d OR created_by = $%d)", argCount, argCount)
 			args = append(args, uid)
+			argCount++
 		}
 	} else if role.(string) == "agent" { // Fallback for legacy
 		uid := int(userID.(float64))
-		query += " WHERE assigned_to = $1"
+		query += fmt.Sprintf(" AND (assigned_to = $%d OR created_by = $%d)", argCount, argCount)
 		args = append(args, uid)
+		argCount++
 	}
 	
 	query += " ORDER BY created_at DESC"
@@ -50,23 +135,6 @@ func GetLeads(c *gin.Context) {
 			log.Println("Error scanning lead:", err)
 			continue
 		}
-		
-		// RBAC field-level filtering
-		if hasPerms {
-			p := perms.(models.RolePermission)
-			for _, rf := range p.RestrictedFields {
-				switch rf {
-				case "phone": l.Phone = "***"
-				case "email": l.Email = "***"
-				case "custom_fields": l.CustomFields = nil
-				}
-				// Also check custom fields specifically
-				if l.CustomFields != nil {
-					delete(l.CustomFields, rf)
-				}
-			}
-		}
-		
 		leads = append(leads, l)
 	}
 	if leads == nil {
@@ -74,6 +142,7 @@ func GetLeads(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, leads)
 }
+
 
 func CreateLead(c *gin.Context) {
 	var req models.CreateLeadRequest
@@ -83,11 +152,7 @@ func CreateLead(c *gin.Context) {
 	}
 
 	userID, _ := c.Get("userID")
-	currentUID := int(userID.(float64))
-
-	if req.AssignedTo == nil {
-		req.AssignedTo = &currentUID
-	}
+	uid := int(userID.(float64))
 
 	if req.Source == "" {
 		req.Source = "manual"
@@ -95,8 +160,8 @@ func CreateLead(c *gin.Context) {
 
 	var newID int
 	err := repository.DB.QueryRow(context.Background(),
-		"INSERT INTO leads (name, phone, email, status, assigned_to, source, custom_fields) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
-		req.Name, req.Phone, req.Email, req.Status, req.AssignedTo, req.Source, req.CustomFields).Scan(&newID)
+		"INSERT INTO leads (name, phone, email, status, assigned_to, source, custom_fields, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id",
+		req.Name, req.Phone, req.Email, req.Status, req.AssignedTo, req.Source, req.CustomFields, uid).Scan(&newID)
 
 	if err != nil {
 		log.Println("Failed to create lead:", err)
@@ -105,6 +170,7 @@ func CreateLead(c *gin.Context) {
 	}
 	c.JSON(http.StatusCreated, gin.H{"message": "Lead created successfully", "id": newID})
 }
+
 
 func UpdateLead(c *gin.Context) {
 	id := c.Param("id")
@@ -145,20 +211,51 @@ func UpdateLead(c *gin.Context) {
 	// 3. Field-level protection: Restore restricted fields from the previous state
 	if hasPerms {
 		p := perms.(models.RolePermission)
+		var violations []string
+		log.Printf("DEBUG: Restricted fields for this user: %v", p.RestrictedFields)
+		
+		customKeys := []string{}
+		for k := range l.CustomFields {
+			customKeys = append(customKeys, k)
+		}
+		log.Printf("DEBUG: Custom fields in request: %v", customKeys)
+
 		for _, rf := range p.RestrictedFields {
-			switch rf {
-			case "name": l.Name = current.Name
-			case "phone": l.Phone = current.Phone
-			case "email": l.Email = current.Email
-			case "status": l.Status = current.Status
-			case "assigned_to": l.AssignedTo = current.AssignedTo
-			}
-			// Maintain custom fields if restricted
-			if l.CustomFields != nil && current.CustomFields != nil {
-				if _, restricted := l.CustomFields[rf]; restricted {
-					l.CustomFields[rf] = current.CustomFields[rf]
+			isViolated := false
+			fieldKey := strings.ToLower(rf)
+			
+			switch fieldKey {
+			case "name": if l.Name != current.Name { isViolated = true; l.Name = current.Name }
+			case "phone": if l.Phone != current.Phone { isViolated = true; l.Phone = current.Phone }
+			case "email": if l.Email != current.Email { isViolated = true; l.Email = current.Email }
+			case "status": if l.Status != current.Status { isViolated = true; l.Status = current.Status }
+			case "assigned_to": 
+				if (l.AssignedTo == nil && current.AssignedTo != nil) || (l.AssignedTo != nil && current.AssignedTo == nil) || (l.AssignedTo != nil && current.AssignedTo != nil && *l.AssignedTo != *current.AssignedTo) {
+					isViolated = true; l.AssignedTo = current.AssignedTo
 				}
 			}
+
+			// Custom fields check (case-insensitive key matching)
+			if l.CustomFields != nil {
+				for k, newVal := range l.CustomFields {
+					if strings.EqualFold(k, rf) {
+						oldVal, exists := current.CustomFields[k]
+						if !exists || !reflect.DeepEqual(newVal, oldVal) {
+							isViolated = true
+							l.CustomFields[k] = oldVal
+						}
+					}
+				}
+			}
+
+			if isViolated {
+				violations = append(violations, rf)
+			}
+		}
+		if len(violations) > 0 {
+			log.Printf("Update blocked for user %v due to violations: %v", userID, violations)
+			c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions to modify: " + strings.Join(violations, ", ")})
+			return
 		}
 	}
 

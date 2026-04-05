@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { API_BASE } from '../config';
+import { useTranslations } from 'next-intl';
 
 interface RolePermission {
   id: number;
@@ -27,10 +28,13 @@ const AVAILABLE_FIELDS: Record<string, string[]> = {
   tasks: ['lead_id', 'property_id', 'agent_id', 'title', 'description', 'due_at', 'status'],
   interactions: ['lead_id', 'agent_id', 'type', 'content'],
   users: ['name', 'email', 'role', 'password'],
-  custom_fields: ['entity_type', 'label', 'field_type', 'options', 'is_required']
+  custom_fields: ['entity_type', 'label', 'field_type', 'options', 'is_required'],
+  meetings: ['lead_id', 'agent_id', 'title', 'provider', 'meeting_link', 'start_time', 'end_time', 'status']
 };
 
 export default function RoleManagement({ token }: RoleManagementProps) {
+  const t = useTranslations('Roles');
+  const ts = useTranslations('Sidebar');
   const [permissions, setPermissions] = useState<RolePermission[]>([]);
   const [customFields, setCustomFields] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -148,25 +152,25 @@ export default function RoleManagement({ token }: RoleManagementProps) {
 
   const getRoles = () => Array.from(new Set(permissions.map(p => p.role_name)));
 
-  if (loading) return <div className="p-12 text-center text-slate-500">Loading RBAC settings...</div>;
+  if (loading) return <div className="p-12 text-center text-slate-500">{t('loading')}</div>;
 
   return (
     <div className="flex flex-col gap-10 animate-in fade-in duration-500">
       <div className="flex justify-between items-end">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-white">RBAC Control Center</h2>
-          <p className="text-sm text-slate-500 mt-1">Manage granular permissions and row-level access for every role.</p>
+          <h2 className="text-2xl font-bold tracking-tight text-white">{t('title')}</h2>
+          <p className="text-sm text-slate-500 mt-1">{t('subtitle')}</p>
         </div>
         <form onSubmit={createRole} className="flex gap-2">
           <input
             type="text"
-            placeholder="New Role Name (e.g. Manager)"
+            placeholder={t('role_name_placeholder')}
             className="input-field bg-white/5 py-2 px-4 text-sm w-64"
             value={newRoleName}
             onChange={e => setNewRoleName(e.target.value)}
           />
           <button type="submit" disabled={isCreating} className="btn-primary py-2 px-4 text-sm">
-            {isCreating ? 'Creating...' : 'Add Role'}
+            {isCreating ? t('creating') : t('add_role')}
           </button>
         </form>
       </div>
@@ -183,20 +187,20 @@ export default function RoleManagement({ token }: RoleManagementProps) {
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
                   <tr className="bg-white/5 text-[10px] font-black uppercase text-slate-500 tracking-wider">
-                    <th className="px-6 py-4">Resource</th>
-                    <th className="px-4 py-4 text-center">View</th>
-                    <th className="px-4 py-4 text-center">View All</th>
-                    <th className="px-4 py-4 text-center">Create</th>
-                    <th className="px-4 py-4 text-center">Edit</th>
-                    <th className="px-4 py-4 text-center">Edit All</th>
-                    <th className="px-4 py-4 text-center">Delete</th>
-                    <th className="px-6 py-4">Restricted Fields</th>
+                    <th className="px-6 py-4">{t('resource')}</th>
+                    <th className="px-4 py-4 text-center">{t('view')}</th>
+                    <th className="px-4 py-4 text-center">{t('view_all')}</th>
+                    <th className="px-4 py-4 text-center">{t('create')}</th>
+                    <th className="px-4 py-4 text-center">{t('edit')}</th>
+                    <th className="px-4 py-4 text-center">{t('edit_all')}</th>
+                    <th className="px-4 py-4 text-center">{t('delete')}</th>
+                    <th className="px-6 py-4">{t('restricted_fields')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {permissions.filter(p => p.role_name === role).map(p => (
                     <tr key={p.id} className="hover:bg-white/[0.01] transition-colors group">
-                      <td className="px-6 py-4 font-bold text-slate-300 capitalize">{p.resource}</td>
+                      <td className="px-6 py-4 font-bold text-slate-300 capitalize">{ts(p.resource as any)}</td>
                       <td className="px-4 py-4 text-center">
                         <input
                           type="checkbox"
@@ -275,7 +279,7 @@ export default function RoleManagement({ token }: RoleManagementProps) {
                                   <span className="text-[11px] text-slate-300 group-hover:text-white">{field}</span>
                                 </label>
                               ))}
-                              {getAvailableFieldsForResource(p.resource).length === 0 && <p className="p-2 text-[11px] text-slate-500 text-center italic">No fields available</p>}
+                              {getAvailableFieldsForResource(p.resource).length === 0 && <p className="p-2 text-[11px] text-slate-500 text-center italic">{t('no_fields')}</p>}
                             </div>
                           </div>
                         )}

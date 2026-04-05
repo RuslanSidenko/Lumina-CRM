@@ -11,11 +11,30 @@ export default function UserManagement({ token }: UserManagementProps) {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showInviteForm, setShowInviteForm] = useState(false);
+  const [inviteRole, setInviteRole] = useState('agent');
+  const [inviteLink, setInviteLink] = useState('');
   const [form, setForm] = useState({ username: '', name: '', email: '', password: '', role: 'agent' });
 
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  const generateInvite = async () => {
+    const res = await fetch(`${API_BASE}/api/v1/invitations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ role: inviteRole })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const fullUrl = `${window.location.protocol}//${window.location.host}${data.invite_url}`;
+      setInviteLink(fullUrl);
+    }
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -68,12 +87,20 @@ export default function UserManagement({ token }: UserManagementProps) {
     <div className="flex flex-col gap-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-bold">Team Management</h2>
-        <button 
-          onClick={() => setShowAddForm(true)}
-          className="btn-primary py-2 px-4 text-sm"
-        >
-          Add Team Member
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => { setShowInviteForm(true); setInviteLink(''); }}
+            className="btn-ghost py-2 px-4 text-sm border border-white/10"
+          >
+            Invite User
+          </button>
+          <button 
+            onClick={() => setShowAddForm(true)}
+            className="btn-primary py-2 px-4 text-sm"
+          >
+            Add Team Member
+          </button>
+        </div>
       </div>
 
       <div className="glass-panel overflow-hidden">
@@ -123,6 +150,55 @@ export default function UserManagement({ token }: UserManagementProps) {
           </tbody>
         </table>
       </div>
+
+      {showInviteForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark-bg/80 backdrop-blur-sm">
+           <div className="glass-panel w-full max-w-sm p-8 relative">
+              <button 
+                onClick={() => setShowInviteForm(false)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-white"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+              <h3 className="text-xl font-bold mb-2">Invite Link</h3>
+              <p className="text-xs text-slate-500 mb-6">Generates a one-hour link for a new member.</p>
+              
+              {!inviteLink ? (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Role</label>
+                    <select 
+                      className="input-field" 
+                      value={inviteRole} 
+                      onChange={e => setInviteRole(e.target.value)}
+                    >
+                      <option value="agent">Agent</option>
+                      <option value="admin">Administrator</option>
+                    </select>
+                  </div>
+                  <button 
+                    onClick={generateInvite}
+                    className="btn-primary py-3 w-full"
+                  >
+                    Generate 1h Link
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg break-all text-xs font-mono text-blue-400 leading-relaxed">
+                    {inviteLink}
+                  </div>
+                  <button 
+                    onClick={() => { navigator.clipboard.writeText(inviteLink); alert('Copied to clipboard'); }}
+                    className="btn-ghost py-3 w-full border border-white/10 text-sm"
+                  >
+                    Copy Link
+                  </button>
+                </div>
+              )}
+           </div>
+        </div>
+      )}
 
       {showAddForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark-bg/80 backdrop-blur-sm">

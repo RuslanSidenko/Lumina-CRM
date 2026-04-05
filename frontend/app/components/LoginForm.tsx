@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import { loginAction } from '../actions/auth';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 export default function LoginForm() {
+  const t = useTranslations('Auth');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -41,7 +43,7 @@ export default function LoginForm() {
           <h1 className="text-2xl font-black text-n-50 tracking-tight">
             Lumina<span className="gradient-text">CRM</span>
           </h1>
-          <p className="text-sm text-n-400 mt-1">Sign in to your workspace</p>
+          <p className="text-sm text-n-400 mt-1">{t('title')}</p>
         </div>
 
         {/* Card */}
@@ -57,7 +59,7 @@ export default function LoginForm() {
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="input-label">Username</label>
+              <label className="input-label">{t('username')}</label>
               <input
                 id="login-username"
                 className="input-field"
@@ -70,7 +72,15 @@ export default function LoginForm() {
               />
             </div>
             <div>
-              <label className="input-label">Password</label>
+              <div className="flex justify-between items-center mb-1">
+                <label className="input-label mb-0">{t('password')}</label>
+                <a 
+                  href="/forgot-password" 
+                  className="text-[10px] font-bold text-accent-500 hover:text-accent-400 transition-colors uppercase tracking-wider"
+                >
+                  {t('forgot_password')}
+                </a>
+              </div>
               <input
                 id="login-password"
                 className="input-field"
@@ -88,13 +98,13 @@ export default function LoginForm() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-              ) : 'Sign In'}
+              ) : t('sign_in')}
             </button>
           </form>
         </div>
 
         <p className="text-center text-xs text-n-500 mt-4">
-          Default: <span className="text-n-400 font-medium">admin</span> / password
+           {t('default_hint')}: <span className="text-n-400 font-medium">admin</span> / admin
         </p>
       </div>
     </div>

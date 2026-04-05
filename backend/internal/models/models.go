@@ -4,11 +4,40 @@ import "time"
 
 type User struct {
 	ID           int       `json:"id"`
+	Username     string    `json:"username"`
 	Name         string    `json:"name"`
 	Email        string    `json:"email"`
 	PasswordHash string    `json:"-"`
 	Role         string    `json:"role"`
 	CreatedAt    time.Time `json:"created_at"`
+}
+
+type OAuthToken struct {
+	ID           int       `json:"id"`
+	UserID       int       `json:"user_id"`
+	Provider     string    `json:"provider"`
+	AccessToken  string    `json:"access_token"`
+	RefreshToken string    `json:"refresh_token"`
+	Expiry       time.Time `json:"expiry"`
+}
+
+type Meeting struct {
+	ID          int       `json:"id"`
+	LeadID      int       `json:"lead_id"`
+	AgentID     int       `json:"agent_id"`
+	Title       string    `json:"title"`
+	Provider    string    `json:"provider"`
+	MeetingLink string    `json:"meeting_link"`
+	StartTime   time.Time `json:"start_time"`
+	EndTime     time.Time `json:"end_time"`
+	Status      string    `json:"status"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+type MeetingDetails struct {
+	Meeting
+	LeadName  string `json:"lead_name"`
+	AgentName string `json:"agent_name"`
 }
 
 type Lead struct {
@@ -43,7 +72,7 @@ type Property struct {
 type CreateLeadRequest struct {
 	Name       string `json:"name" binding:"required"`
 	Phone      string `json:"phone" binding:"required"`
-	Email      string `json:"email" binding:"required,email"`
+	Email      string `json:"email" binding:"omitempty,email"`
 	Status     string `json:"status" binding:"required"`
 	AssignedTo   *int                   `json:"assigned_to"`
 	Source       string                 `json:"source"`
@@ -83,12 +112,13 @@ type Deal struct {
 }
 
 type CustomFieldDefinition struct {
-	ID         int      `json:"id"`
-	EntityType string   `json:"entity_type"` // lead, property
-	Label      string   `json:"label"`
-	FieldType  string   `json:"field_type"` // text, number, select
-	Options    []string `json:"options"`
-	IsRequired bool     `json:"is_required"`
+	ID                int               `json:"id"`
+	EntityType        string            `json:"entity_type"` // lead, property
+	Label             string            `json:"label"`       // fallback/internal key
+	LabelTranslations map[string]string `json:"label_translations"`
+	FieldType         string            `json:"field_type"`  // text, number, select
+	Options           []string          `json:"options"`
+	IsRequired        bool              `json:"is_required"`
 }
 
 type RolePermission struct {
@@ -110,3 +140,19 @@ type APIKey struct {
 	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"created_at"`
 }
+
+type Invitation struct {
+	ID        int       `json:"id"`
+	Token     string    `json:"token"`
+	Role      string    `json:"role"`
+	ExpiresAt time.Time `json:"expires_at"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type FulfillInvitationRequest struct {
+	Token    string `json:"token" binding:"required"`
+	Name     string `json:"name" binding:"required"`
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=6"`
+}
+

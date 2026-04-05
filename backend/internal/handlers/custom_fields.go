@@ -13,7 +13,7 @@ import (
 
 func GetCustomFields(c *gin.Context) {
 	entityType := c.Query("entity_type")
-	query := "SELECT id, entity_type, label, field_type, options, is_required FROM custom_field_definitions"
+	query := "SELECT id, entity_type, label, label_translations, field_type, options, is_required FROM custom_field_definitions"
 	args := []interface{}{}
 
 	if entityType != "" {
@@ -32,7 +32,7 @@ func GetCustomFields(c *gin.Context) {
 	var fields []models.CustomFieldDefinition
 	for rows.Next() {
 		var f models.CustomFieldDefinition
-		err := rows.Scan(&f.ID, &f.EntityType, &f.Label, &f.FieldType, &f.Options, &f.IsRequired)
+		err := rows.Scan(&f.ID, &f.EntityType, &f.Label, &f.LabelTranslations, &f.FieldType, &f.Options, &f.IsRequired)
 		if err != nil {
 			log.Println("Scanning error:", err)
 			continue
@@ -53,8 +53,8 @@ func CreateCustomField(c *gin.Context) {
 	}
 
 	err := repository.DB.QueryRow(context.Background(),
-		"INSERT INTO custom_field_definitions (entity_type, label, field_type, options, is_required) VALUES ($1, $2, $3, $4, $5) RETURNING id",
-		f.EntityType, f.Label, f.FieldType, f.Options, f.IsRequired).Scan(&f.ID)
+		"INSERT INTO custom_field_definitions (entity_type, label, label_translations, field_type, options, is_required) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
+		f.EntityType, f.Label, f.LabelTranslations, f.FieldType, f.Options, f.IsRequired).Scan(&f.ID)
 
 	if err != nil {
 		log.Println("Create custom field error:", err)
@@ -73,8 +73,8 @@ func UpdateCustomField(c *gin.Context) {
 	}
 
 	_, err := repository.DB.Exec(context.Background(),
-		"UPDATE custom_field_definitions SET label = $1, field_type = $2, options = $3, is_required = $4 WHERE id = $5",
-		f.Label, f.FieldType, f.Options, f.IsRequired, id)
+		"UPDATE custom_field_definitions SET label = $1, label_translations = $2, field_type = $3, options = $4, is_required = $5 WHERE id = $6",
+		f.Label, f.LabelTranslations, f.FieldType, f.Options, f.IsRequired, id)
 
 	if err != nil {
 		log.Println("Update custom field error:", err)
