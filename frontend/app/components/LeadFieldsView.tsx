@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Lead } from '../types';
 import { API_BASE } from '../config';
+import { useTranslations, useLocale } from 'next-intl';
 
 interface LeadFieldsViewProps {
   lead: Lead;
@@ -15,12 +16,17 @@ interface CustomFieldDefinition {
   id: number;
   entity_type: 'lead' | 'property';
   label: string;
+  label_translations?: Record<string, string>;
   field_type: 'text' | 'number' | 'select';
   options?: string[];
   is_required: boolean;
 }
 
 export default function LeadFieldsView({ lead, token, onUpdate, notify }: LeadFieldsViewProps) {
+  const t = useTranslations('Common');
+  const tl = useTranslations('Leads');
+  const locale = useLocale();
+  
   const [fields, setFields] = useState<CustomFieldDefinition[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -135,23 +141,23 @@ export default function LeadFieldsView({ lead, token, onUpdate, notify }: LeadFi
 
 
     const displayValue = fieldName === 'assigned_to'
-      ? users.find(u => u.id === value)?.name || 'Unassigned'
+      ? users.find(u => u.id === value)?.name || tl('unassigned_only')
       : value;
 
     return (
       <div className="flex flex-col gap-1.5 group">
-        <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider flex justify-between items-center">
+        <label className="text-[10px] font-black uppercase text-n-500 tracking-wider flex justify-between items-center">
           {label}
           {!isEditing && !isRestricted && (
             <button
               onClick={() => startEditing(fieldName, value)}
-              className="opacity-0 group-hover:opacity-100 text-brand-400 hover:text-brand-300 transition-all text-[9px] font-bold"
+              className="opacity-0 group-hover:opacity-100 text-accent-400 hover:text-accent-300 transition-all text-[9px] font-bold"
             >
-              EDIT
+              {t('update').toUpperCase()}
             </button>
           )}
           {isRestricted && (
-            <span className="text-slate-600 text-[8px] font-bold flex items-center gap-1">
+            <span className="text-n-600 text-[8px] font-bold flex items-center gap-1">
               <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
               READ ONLY
             </span>
@@ -163,7 +169,7 @@ export default function LeadFieldsView({ lead, token, onUpdate, notify }: LeadFi
           <div className="flex gap-2 animate-in slide-in-from-top-1 duration-200">
             {fieldName === 'status' ? (
               <select
-                className="input-field py-1 bg-slate-900 border-brand-500/50"
+                className="input-field py-1 bg-n-900 border-accent-500/50"
                 value={editValue}
                 onChange={(e) => setEditValue(e.target.value)}
                 autoFocus
@@ -178,12 +184,12 @@ export default function LeadFieldsView({ lead, token, onUpdate, notify }: LeadFi
               </select>
             ) : fieldName === 'assigned_to' ? (
               <select
-                className="input-field py-1 bg-slate-900 border-brand-500/50"
+                className="input-field py-1 bg-n-900 border-accent-500/50"
                 value={editValue || ''}
                 onChange={(e) => setEditValue(e.target.value ? parseInt(e.target.value) : null)}
                 autoFocus
               >
-                <option value="">Unassigned</option>
+                <option value="">{tl('unassigned_only')}</option>
                 {users.map(u => (
                   <option key={u.id} value={u.id}>{u.name}</option>
                 ))}
@@ -191,7 +197,7 @@ export default function LeadFieldsView({ lead, token, onUpdate, notify }: LeadFi
             ) : (
               <input
                 type={type}
-                className="input-field py-1 bg-slate-900 border-brand-500/50"
+                className="input-field py-1 bg-n-900 border-accent-500/50"
                 value={editValue || ''}
                 onChange={(e) => setEditValue(e.target.value)}
                 autoFocus
@@ -217,10 +223,10 @@ export default function LeadFieldsView({ lead, token, onUpdate, notify }: LeadFi
           </div>
         ) : (
           <div
-            className={`text-slate-200 font-medium py-1 px-3 border border-transparent rounded transition-all truncate ${isRestricted ? 'cursor-not-allowed bg-white/[0.01]' : 'hover:border-white/5 cursor-pointer'}`}
+            className={`text-n-100 font-medium py-1 px-3 border border-transparent rounded transition-all truncate ${isRestricted ? 'cursor-not-allowed bg-white/[0.01]' : 'hover:border-white/5 cursor-pointer'}`}
             onClick={() => !isRestricted && startEditing(fieldName, value)}
           >
-            {displayValue || <span className="text-slate-600 italic">Not set</span>}
+            {displayValue || <span className="text-n-600 italic">{t('search')}</span>}
           </div>
         )}
       </div>
@@ -228,16 +234,16 @@ export default function LeadFieldsView({ lead, token, onUpdate, notify }: LeadFi
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 p-6 bg-white/[0.02] rounded-3xl border border-white/5">
-      {renderField('Contact Name', 'name', lead.name)}
-      {renderField('Email Address', 'email', lead.email, 'email')}
-      {renderField('Phone Number', 'phone', lead.phone, 'tel')}
-      {renderField('Status', 'status', lead.status)}
-      {renderField('Assigned To', 'assigned_to', lead.assigned_to)}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 p-6 bg-white/[0.02] rounded-3xl border border-white/5 shadow-inner">
+      {renderField(t('name'), 'name', lead.name)}
+      {renderField(t('email'), 'email', lead.email, 'email')}
+      {renderField(t('phone'), 'phone', lead.phone, 'tel')}
+      {renderField(t('status'), 'status', lead.status)}
+      {renderField(t('assigned_to'), 'assigned_to', lead.assigned_to)}
 
       {fields.map(f => (
         <div key={f.id}>
-          {renderField(f.label, `custom_${f.label}`, lead.custom_fields?.[f.label], f.field_type === 'number' ? 'number' : 'text')}
+          {renderField(f.label_translations?.[locale] || f.label, `custom_${f.label}`, lead.custom_fields?.[f.label], f.field_type === 'number' ? 'number' : 'text')}
         </div>
       ))}
     </div>

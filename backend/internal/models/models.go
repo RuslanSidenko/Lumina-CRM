@@ -112,12 +112,13 @@ type Deal struct {
 }
 
 type CustomFieldDefinition struct {
-	ID         int      `json:"id"`
-	EntityType string   `json:"entity_type"` // lead, property
-	Label      string   `json:"label"`
-	FieldType  string   `json:"field_type"` // text, number, select
-	Options    []string `json:"options"`
-	IsRequired bool     `json:"is_required"`
+	ID                int               `json:"id"`
+	EntityType        string            `json:"entity_type"` // lead, property
+	Label             string            `json:"label"`       // fallback/internal key
+	LabelTranslations map[string]string `json:"label_translations"`
+	FieldType         string            `json:"field_type"`  // text, number, select
+	Options           []string          `json:"options"`
+	IsRequired        bool              `json:"is_required"`
 }
 
 type RolePermission struct {

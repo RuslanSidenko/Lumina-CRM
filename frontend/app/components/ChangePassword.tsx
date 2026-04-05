@@ -2,12 +2,15 @@
 
 import { useState } from 'react';
 import { changePasswordAction } from '../actions/auth';
+import { useTranslations } from 'next-intl';
 
 interface ChangePasswordProps {
   token: string;
 }
 
 export default function ChangePassword({ token }: ChangePasswordProps) {
+  const t = useTranslations('Security');
+  
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -24,11 +27,11 @@ export default function ChangePassword({ token }: ChangePasswordProps) {
     setSuccess('');
 
     if (newPassword.length < 6) {
-      setError('New password must be at least 6 characters.');
+      setError(t('min_length_error'));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError('New passwords do not match.');
+      setError(t('passwords_mismatch'));
       return;
     }
 
@@ -37,12 +40,12 @@ export default function ChangePassword({ token }: ChangePasswordProps) {
     setLoading(false);
 
     if (res.success) {
-      setSuccess('Password changed successfully!');
+      setSuccess(t('password_changed'));
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } else {
-      setError(res.error || 'Failed to change password.');
+      setError(res.error || t('failed_to_change'));
     }
   };
 
@@ -51,7 +54,7 @@ export default function ChangePassword({ token }: ChangePasswordProps) {
     : newPassword.length < 10 ? 2
     : /[A-Z]/.test(newPassword) && /[0-9]/.test(newPassword) ? 4 : 3;
 
-  const strengthLabel = ['', 'Weak', 'Fair', 'Good', 'Strong'];
+  const strengthLabel = ['', t('weak'), t('fair'), t('good'), t('strong')];
   const strengthColor = ['', 'bg-red-500', 'bg-amber-500', 'bg-emerald-400', 'bg-emerald-500'];
 
   return (
@@ -64,8 +67,8 @@ export default function ChangePassword({ token }: ChangePasswordProps) {
           </svg>
         </div>
         <div>
-          <h2 className="text-base font-bold text-n-50">Change Password</h2>
-          <p className="text-xs text-n-400">Update your account password</p>
+          <h2 className="text-base font-bold text-n-50">{t('change_password')}</h2>
+          <p className="text-xs text-n-400">{t('update_account_password')}</p>
         </div>
       </div>
 
@@ -94,7 +97,7 @@ export default function ChangePassword({ token }: ChangePasswordProps) {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Current Password */}
           <div>
-            <label className="input-label">Current Password</label>
+            <label className="input-label">{t('current_password')}</label>
             <div className="relative">
               <input
                 id="settings-current-password"
@@ -128,7 +131,7 @@ export default function ChangePassword({ token }: ChangePasswordProps) {
 
           {/* New Password */}
           <div>
-            <label className="input-label">New Password</label>
+            <label className="input-label">{t('new_password')}</label>
             <div className="relative">
               <input
                 id="settings-new-password"
@@ -182,7 +185,7 @@ export default function ChangePassword({ token }: ChangePasswordProps) {
 
           {/* Confirm New Password */}
           <div>
-            <label className="input-label">Confirm New Password</label>
+            <label className="input-label">{t('confirm_new_password')}</label>
             <div className="relative">
               <input
                 id="settings-confirm-password"
@@ -219,7 +222,7 @@ export default function ChangePassword({ token }: ChangePasswordProps) {
               </button>
             </div>
             {confirmPassword && confirmPassword !== newPassword && (
-              <p className="text-xs text-red-400 mt-1">Passwords do not match</p>
+              <p className="text-xs text-red-400 mt-1">{t('passwords_mismatch')}</p>
             )}
           </div>
 
@@ -233,7 +236,7 @@ export default function ChangePassword({ token }: ChangePasswordProps) {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-            ) : 'Update Password'}
+            ) : t('update_button')}
           </button>
         </form>
       </div>
@@ -244,7 +247,7 @@ export default function ChangePassword({ token }: ChangePasswordProps) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <p className="text-xs text-n-400 leading-relaxed">
-          After changing your password you will need to sign in again on other devices. Choose a strong password with at least 8 characters, including uppercase letters and numbers.
+          {t('security_notice')}
         </p>
       </div>
     </div>

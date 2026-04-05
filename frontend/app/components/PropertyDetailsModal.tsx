@@ -2,6 +2,7 @@
 
 import { Property } from '../types';
 import PropertyFieldsView from './PropertyFieldsView';
+import { useTranslations } from 'next-intl';
 
 interface PropertyDetailsModalProps {
   property: Property;
@@ -18,6 +19,9 @@ const STATUS_CHIP = {
 };
 
 export default function PropertyDetailsModal({ property, token, onClose, onUpdate, notify }: PropertyDetailsModalProps) {
+  const t = useTranslations('Properties');
+  const tc = useTranslations('Common');
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
@@ -74,16 +78,18 @@ export default function PropertyDetailsModal({ property, token, onClose, onUpdat
 
             {/* Specs */}
             <div className="grid grid-cols-3 gap-3 py-4 border-y border-n-500/50">
-              {[
-                { label: 'Bedrooms', value: property.bedrooms },
-                { label: 'Bathrooms', value: property.bathrooms },
-                { label: 'Sq Ft', value: property.area },
-              ].map(s => (
-                <div key={s.label} className="text-center">
-                  <p className="text-xl font-bold text-n-50">{s.value}</p>
-                  <p className="section-title mt-0.5">{s.label}</p>
+                <div className="text-center">
+                  <p className="text-xl font-bold text-n-50">{property.bedrooms}</p>
+                  <p className="section-title mt-0.5">{t('beds')}</p>
                 </div>
-              ))}
+                <div className="text-center">
+                  <p className="text-xl font-bold text-n-50">{property.bathrooms}</p>
+                  <p className="section-title mt-0.5">{t('baths')}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xl font-bold text-n-50">{property.area}</p>
+                  <p className="section-title mt-0.5">{t('sqft')}</p>
+                </div>
             </div>
 
             <PropertyFieldsView property={property} token={token} onUpdate={onUpdate} notify={notify} />
@@ -102,13 +108,8 @@ export default function PropertyDetailsModal({ property, token, onClose, onUpdat
 
           {/* Actions */}
           <div className="px-6 py-4 border-t border-n-500/60 shrink-0 flex gap-3">
-            <a
-              href={`mailto:agent@example.com?subject=Inquiry: ${property.title}`}
-              className="btn-primary flex-1 text-sm text-center"
-            >
-              Contact Agent
-            </a>
-            <button className="btn-secondary flex-1 text-sm">Schedule Viewing</button>
+             <button className="btn-primary flex-1 text-sm">{tc('save')}</button>
+             <button className="btn-secondary flex-1 text-sm">{tc('close')}</button>
           </div>
         </div>
       </div>

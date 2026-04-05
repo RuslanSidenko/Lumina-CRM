@@ -78,3 +78,12 @@ export interface WhatsAppMessage {
   timestamp: string;
   created_at: string;
 }
+export interface CustomFieldDefinition {
+  id: number;
+  entity_type: 'lead' | 'property';
+  label: string;
+  label_translations?: Record<string, string>;
+  field_type: 'text' | 'number' | 'select';
+  options?: string[];
+  is_required: boolean;
+}

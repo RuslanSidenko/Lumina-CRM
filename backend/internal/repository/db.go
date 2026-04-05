@@ -345,6 +345,9 @@ func SeedDatabase() {
 	if _, err := DB.Exec(context.Background(), "ALTER TABLE properties ADD COLUMN IF NOT EXISTS custom_fields JSONB DEFAULT '{}'"); err != nil {
 		log.Printf("Migration error (properties custom_fields): %v", err)
 	}
+	if _, err := DB.Exec(context.Background(), "ALTER TABLE custom_field_definitions ADD COLUMN IF NOT EXISTS label_translations JSONB DEFAULT '{}'"); err != nil {
+		log.Printf("Migration error (custom_field_definitions label_translations): %v", err)
+	}
 
 	// Add whatsapp_messages table if it's missing (failsafe)
 	_, _ = DB.Exec(context.Background(), `
@@ -379,25 +382,26 @@ func SeedDatabase() {
 	// Seed Essential Custom Fields for Leads
 	log.Println("Seeding essential custom fields...")
 	fieldsToSeed := []struct {
-		EntityType string
-		Label      string
-		FieldType  string
-		Options    []string
+		EntityType   string
+		Label        string
+		Translations map[string]string
+		FieldType    string
+		Options      []string
 	}{
-		{"lead", "Budget", "number", nil},
-		{"lead", "Intended Date", "text", nil},
-		{"lead", "Decision Maker", "select", []string{"Yes", "No"}},
-		{"lead", "First Deposit", "number", nil},
-		{"lead", "Condo Interest", "text", nil},
-		{"lead", "Bedrooms", "number", nil},
-		{"lead", "Goal", "select", []string{"Investment", "Living"}},
-		{"lead", "Country", "text", nil},
+		{"lead", "Budget", map[string]string{"en": "Budget", "ru": "Бюджет"}, "number", nil},
+		{"lead", "Intended Date", map[string]string{"en": "Intended Date", "ru": "Дата въезда"}, "text", nil},
+		{"lead", "Decision Maker", map[string]string{"en": "Decision Maker", "ru": "Кто принимает решение"}, "select", []string{"Yes", "No"}},
+		{"lead", "First Deposit", map[string]string{"en": "First Deposit", "ru": "Первый взнос"}, "number", nil},
+		{"lead", "Condo Interest", map[string]string{"en": "Condo Interest", "ru": "Интерес к кондо"}, "text", nil},
+		{"lead", "Bedrooms", map[string]string{"en": "Bedrooms", "ru": "Спален"}, "number", nil},
+		{"lead", "Goal", map[string]string{"en": "Goal", "ru": "Цель"}, "select", []string{"Investment", "Living"}},
+		{"lead", "Country", map[string]string{"en": "Country", "ru": "Страна"}, "text", nil},
 	}
 
 	for _, f := range fieldsToSeed {
 		_, _ = DB.Exec(context.Background(), 
-			"INSERT INTO custom_field_definitions (entity_type, label, field_type, options) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING",
-			f.EntityType, f.Label, f.FieldType, f.Options)
+			"INSERT INTO custom_field_definitions (entity_type, label, label_translations, field_type, options) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING",
+			f.EntityType, f.Label, f.Translations, f.FieldType, f.Options)
 	}
 
 	// Add username column migration for existing tables

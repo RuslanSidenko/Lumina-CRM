@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Lead } from '../types';
+import { useTranslations } from 'next-intl';
 import InteractionLog from './InteractionLog';
 import TaskManager from './TaskManager';
 import LeadFieldsView from './LeadFieldsView';
@@ -28,6 +29,9 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 export default function LeadDetailsModal({ lead, token, onClose, onUpdate, notify }: LeadDetailsModalProps) {
+  const t = useTranslations('Modals');
+  const tc = useTranslations('Common');
+  
   const [activeTab, setActiveTab] = useState<'details' | 'whatsapp'>('details');
   const initials = lead.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
@@ -63,7 +67,7 @@ export default function LeadDetailsModal({ lead, token, onClose, onUpdate, notif
                 {lead.phone}
               </span>
               <span className="text-n-500 text-xs">
-                #{lead.id} · Added {lead.created_at ? new Date(lead.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                #{lead.id} · Added {lead.created_at ? new Date(lead.created_at).toLocaleDateString() : '—'}
               </span>
             </div>
           </div>
@@ -83,7 +87,7 @@ export default function LeadDetailsModal({ lead, token, onClose, onUpdate, notif
               activeTab === 'details' ? 'border-accent-500 text-n-50' : 'border-transparent text-n-400 hover:text-n-100'
             }`}
           >
-            Lead Details & CRM
+            {t('lead_details')}
           </button>
           <button
             onClick={() => setActiveTab('whatsapp')}

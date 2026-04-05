@@ -1,6 +1,7 @@
 'use client'
 
 import { Property } from '../types';
+import { useTranslations } from 'next-intl';
 
 interface PropertiesGridProps {
   properties: Property[];
@@ -14,10 +15,12 @@ const STATUS_CHIP = {
 };
 
 export default function PropertiesGrid({ properties, onPropertyClick }: PropertiesGridProps) {
+  const t = useTranslations('Properties');
+
   if (!properties || properties.length === 0) {
     return (
       <div className="card p-20 text-center text-n-400 text-sm">
-        No properties listed yet.
+        {t('no_properties')}
       </div>
     );
   }
@@ -60,16 +63,18 @@ export default function PropertiesGrid({ properties, onPropertyClick }: Properti
 
             {/* Specs */}
             <div className="flex items-center gap-4 mt-2 pt-3 border-t border-n-500/50">
-              {[
-                { label: 'bd', value: p.bedrooms },
-                { label: 'ba', value: p.bathrooms },
-                { label: 'sqft', value: p.area },
-              ].map(spec => (
-                <div key={spec.label} className="flex items-baseline gap-1">
-                  <span className="text-sm font-bold text-n-100">{spec.value}</span>
-                  <span className="text-[10px] text-n-400 font-medium uppercase">{spec.label}</span>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-sm font-bold text-n-100">{p.bedrooms}</span>
+                  <span className="text-[10px] text-n-400 font-medium uppercase">{t('beds').slice(0, 2)}</span>
                 </div>
-              ))}
+                <div className="flex items-baseline gap-1">
+                  <span className="text-sm font-bold text-n-100">{p.bathrooms}</span>
+                  <span className="text-[10px] text-n-400 font-medium uppercase">{t('baths').slice(0, 2)}</span>
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-sm font-bold text-n-100">{p.area}</span>
+                  <span className="text-[10px] text-n-400 font-medium uppercase">{t('sqft')}</span>
+                </div>
             </div>
           </div>
         </div>
