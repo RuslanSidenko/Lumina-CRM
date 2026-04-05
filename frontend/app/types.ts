@@ -13,6 +13,8 @@ export interface Lead {
   email?: string;
   status: string;
   assigned_to?: number | null;
+  created_by?: number | null;
+  source?: string;
   custom_fields?: Record<string, any>;
   created_at?: string;
 }

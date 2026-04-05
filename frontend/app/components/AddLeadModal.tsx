@@ -107,8 +107,23 @@ export default function AddLeadModal({ token, onClose, onSuccess }: AddLeadModal
               onChange={e => setNewLead({ ...newLead, email: e.target.value })}
             />
           </div>
-          
           <div className="flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-1">
+            <label className="text-xs font-medium text-slate-400 ml-1">Status <span className="text-red-500">*</span></label>
+            <select
+                className="input-field"
+                required
+                value={newLead.status}
+                onChange={e => setNewLead({ ...newLead, status: e.target.value })}
+            >
+                <option value="New">New</option>
+                <option value="Contacted">Contacted</option>
+                <option value="Qualified">Qualified</option>
+                <option value="Active">Active</option>
+                <option value="Lost">Lost</option>
+                <option value="Not Interested">Not Interested</option>
+                <option value="Ignored">Ignored</option>
+            </select>
+          </div>          <div className="flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-1">
             <label className="text-xs font-medium text-slate-400 ml-1">Assigned To</label>
             <select
                 className="input-field"

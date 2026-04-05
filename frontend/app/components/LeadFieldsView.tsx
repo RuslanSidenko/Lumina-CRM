@@ -171,7 +171,10 @@ export default function LeadFieldsView({ lead, token, onUpdate, notify }: LeadFi
                 <option value="New">New</option>
                 <option value="Contacted">Contacted</option>
                 <option value="Qualified">Qualified</option>
+                <option value="Active">Active</option>
                 <option value="Lost">Lost</option>
+                <option value="Not Interested">Not Interested</option>
+                <option value="Ignored">Ignored</option>
               </select>
             ) : fieldName === 'assigned_to' ? (
               <select

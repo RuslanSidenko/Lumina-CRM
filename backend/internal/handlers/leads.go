@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"reflect"
@@ -17,24 +18,103 @@ func GetLeads(c *gin.Context) {
 	userID, _ := c.Get("userID")
 	perms, hasPerms := c.Get("permissions")
 
-	query := "SELECT id, name, phone, email, status, assigned_to, source, custom_fields, created_at FROM leads"
+	// Get query params
+	search := c.Query("search")
+	queryParams := c.Request.URL.Query()
+	statuses := queryParams["status"]
+	excludeStatus := c.Query("exclude_status") == "true"
+	unassignedOnly := c.Query("unassigned_only") == "true"
+	assignedTo := c.Query("assigned_to")
+	createdBy := c.Query("created_by")
+	source := c.Query("source")
+	startDate := c.Query("start_date")
+	endDate := c.Query("end_date")
+
+	query := "SELECT id, name, phone, email, status, assigned_to, source, custom_fields, created_at FROM leads WHERE 1=1"
 	args := []interface{}{}
+	argCount := 1
+
+	// Dynamic Filters
+	if search != "" {
+		query += fmt.Sprintf(" AND (name ILIKE $%d OR email ILIKE $%d OR phone LIKE $%d OR source ILIKE $%d)", argCount, argCount, argCount, argCount)
+		args = append(args, "%"+search+"%")
+		argCount++
+	}
+	
+	if len(statuses) > 0 {
+		operator := "IN"
+		if excludeStatus {
+			operator = "NOT IN"
+		}
+		
+		placeholders := []string{}
+		for _, s := range statuses {
+			if s == "" { continue }
+			placeholders = append(placeholders, fmt.Sprintf("$%d", argCount))
+			args = append(args, s)
+			argCount++
+		}
+		if len(placeholders) > 0 {
+			query += fmt.Sprintf(" AND status %s (%s)", operator, strings.Join(placeholders, ","))
+		}
+	}
+
+	if unassignedOnly {
+		query += " AND assigned_to IS NULL"
+	} else if assignedTo != "" {
+		query += fmt.Sprintf(" AND assigned_to = $%d", argCount)
+		args = append(args, assignedTo)
+		argCount++
+	}
+
+	if createdBy != "" {
+		query += fmt.Sprintf(" AND created_by = $%d", argCount)
+		args = append(args, createdBy)
+		argCount++
+	}
+
+	if source != "" {
+		query += fmt.Sprintf(" AND source = $%d", argCount)
+		args = append(args, source)
+		argCount++
+	}
+	
+	// Custom Fields Filtering (params starting with cf_)
+	for key, values := range queryParams {
+		if strings.HasPrefix(key, "cf_") && len(values) > 0 && values[0] != "" {
+			fieldName := strings.TrimPrefix(key, "cf_")
+			// We use ->> to get text value from JSONB and compare
+			query += fmt.Sprintf(" AND custom_fields ->> $%d ILIKE $%d", argCount, argCount+1)
+			args = append(args, fieldName, "%"+values[0]+"%")
+			argCount += 2
+		}
+	}
+
+	if startDate != "" {
+		query += fmt.Sprintf(" AND created_at >= $%d", argCount)
+		args = append(args, startDate)
+		argCount++
+	}
+	if endDate != "" {
+		query += fmt.Sprintf(" AND created_at <= $%d", argCount)
+		args = append(args, endDate)
+		argCount++
+	}
 
 	// RBAC row-level filtering:
-	// - admin: sees all
-	// - can_view_all: sees all
-	// - can_view (no can_view_all): sees leads assigned to them OR created by them
 	if role.(string) != "admin" && hasPerms {
 		p := perms.(models.RolePermission)
 		if !p.CanViewAll {
 			uid := int(userID.(float64))
-			query += " WHERE (assigned_to = $1 OR created_by = $1)"
+			query += fmt.Sprintf(" AND (assigned_to = $%d OR created_by = $%d)", argCount, argCount)
 			args = append(args, uid)
+			argCount++
 		}
 	} else if role.(string) == "agent" { // Fallback for legacy
 		uid := int(userID.(float64))
-		query += " WHERE (assigned_to = $1 OR created_by = $1)"
+		query += fmt.Sprintf(" AND (assigned_to = $%d OR created_by = $%d)", argCount, argCount)
 		args = append(args, uid)
+		argCount++
 	}
 	
 	query += " ORDER BY created_at DESC"

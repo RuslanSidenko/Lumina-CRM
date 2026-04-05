@@ -18,11 +18,13 @@ interface LeadDetailsModalProps {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  New:       'badge-blue',
+  New: 'badge-blue',
   Contacted: 'badge-yellow',
   Qualified: 'badge-purple',
-  Active:    'badge-green',
-  Lost:      'badge-red',
+  Active: 'badge-green',
+  Lost: 'badge-red',
+  'Not Interested': 'badge-red',
+  Ignored: 'badge-gray',
 };
 
 export default function LeadDetailsModal({ lead, token, onClose, onUpdate, notify }: LeadDetailsModalProps) {
